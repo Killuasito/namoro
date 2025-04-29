@@ -1039,10 +1039,25 @@ Após criar o índice, recarregue a página.`);
                   Opções de Resposta
                 </label>
                 {newQuestion.options.map((option, index) => (
-                  <div key={index} className="flex items-center mb-2">
-                    <div className="w-10 h-10 flex items-center justify-center bg-gray-100 rounded-l-lg border-l border-y border-gray-300 font-medium text-gray-700">
+                  <div
+                    key={index}
+                    className="flex flex-col sm:flex-row sm:items-center mb-3"
+                  >
+                    {/* Label da opção - versão mobile será acima do input */}
+                    <div className="sm:hidden w-full flex items-center mb-1">
+                      <div className="w-8 h-8 flex items-center justify-center bg-gray-100 rounded-lg font-medium text-gray-700 mr-2">
+                        {["A", "B", "C", "D"][index]}
+                      </div>
+                      <span className="text-sm text-gray-600">
+                        Opção {index + 1}
+                      </span>
+                    </div>
+
+                    {/* Layout para desktop */}
+                    <div className="hidden sm:flex items-center justify-center bg-gray-100 rounded-l-lg border-l border-y border-gray-300 font-medium text-gray-700 w-10 h-10">
                       {["A", "B", "C", "D"][index]}
                     </div>
+
                     <input
                       type="text"
                       value={option}
@@ -1050,9 +1065,10 @@ Após criar o índice, recarregue a página.`);
                         handleOptionChange(index, e.target.value)
                       }
                       placeholder={`Opção ${index + 1}`}
-                      className="flex-grow px-3 py-2 border-r border-y border-gray-300 rounded-r-lg focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary"
+                      className="flex-grow px-3 py-2 border border-gray-300 rounded-md sm:rounded-l-none sm:rounded-r-lg focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary"
                     />
-                    <div className="ml-3">
+
+                    <div className="mt-2 sm:mt-0 sm:ml-3 flex items-center">
                       <input
                         type="radio"
                         id={`option-${index}`}
@@ -1075,30 +1091,46 @@ Após criar o índice, recarregue a página.`);
                     </div>
                   </div>
                 ))}
+
+                <div className="mt-4 bg-blue-50 p-3 rounded-md text-xs text-gray-600 border border-blue-100">
+                  <p className="flex items-center text-blue-700">
+                    <FontAwesomeIcon icon="info-circle" className="mr-1" />
+                    <span className="font-medium">Dica:</span>
+                  </p>
+                  <p className="mt-1">
+                    Deixe opções em branco caso queira menos de 4 alternativas.
+                    Apenas as opções preenchidas aparecerão no quiz.
+                  </p>
+                </div>
               </div>
 
-              <div className="mb-4">
+              <div className="mb-6">
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Pontos
                 </label>
-                <input
-                  type="number"
-                  min="1"
-                  max="100"
-                  value={newQuestion.points}
-                  onChange={(e) =>
-                    setNewQuestion({
-                      ...newQuestion,
-                      points: parseInt(e.target.value, 10),
-                    })
-                  }
-                  className="w-24 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary"
-                />
+                <div className="flex items-center">
+                  <input
+                    type="number"
+                    min="1"
+                    max="100"
+                    value={newQuestion.points}
+                    onChange={(e) =>
+                      setNewQuestion({
+                        ...newQuestion,
+                        points: parseInt(e.target.value, 10),
+                      })
+                    }
+                    className="w-24 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary"
+                  />
+                  <span className="ml-2 text-sm text-gray-600">
+                    Valor da questão
+                  </span>
+                </div>
               </div>
 
               <button
                 onClick={handleAddQuestion}
-                className={`px-5 py-2 bg-pink-300 text-white rounded-lg flex items-center gap-2`}
+                className="w-full sm:w-auto px-5 py-2 bg-pink-300 text-white rounded-lg flex items-center justify-center gap-2 hover:bg-pink-400 transition-colors"
               >
                 <FontAwesomeIcon icon={editingQuestion ? "save" : "plus"} />
                 {editingQuestion ? "Salvar Alterações" : "Adicionar Pergunta"}
@@ -1109,7 +1141,7 @@ Após criar o índice, recarregue a página.`);
               <button
                 onClick={handleCreateQuiz}
                 disabled={newQuiz.questions.length === 0}
-                className={`px-6 py-3 rounded-lg flex items-center gap-2 ${
+                className={`w-full sm:w-auto px-6 py-3 rounded-lg flex items-center justify-center gap-2 ${
                   newQuiz.questions.length === 0
                     ? "bg-gray-300 cursor-not-allowed text-gray-500"
                     : "bg-pink-300 text-white hover:bg-pink-400"

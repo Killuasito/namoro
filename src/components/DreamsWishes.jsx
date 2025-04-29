@@ -82,7 +82,9 @@ const DreamsWishes = () => {
           </h3>
 
           <div className="flex flex-col gap-5">
-            <div className="bg-gray-50 p-4 rounded-lg flex gap-6">
+            {/* Modificando para colocar os tipos um abaixo do outro em vez de lado a lado */}
+            <div className="bg-gray-50 p-4 rounded-lg flex flex-col gap-4">
+              {/* Primeiro a Meta */}
               <div className="flex items-center">
                 <input
                   type="radio"
@@ -104,6 +106,7 @@ const DreamsWishes = () => {
                 </label>
               </div>
 
+              {/* Depois o Sonho */}
               <div className="flex items-center">
                 <input
                   type="radio"
