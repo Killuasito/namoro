@@ -156,34 +156,47 @@ const Profile = () => {
 
   return (
     <Layout>
-      <div className="container mx-auto">
-        <div className="bg-white rounded-xl p-6 shadow-md border border-gray-200">
-          <h2 className="text-2xl font-bold mb-6 text-gray-800 flex items-center">
+      <div className="container mx-auto px-4">
+        <div className="bg-white rounded-xl p-4 sm:p-6 shadow-md border border-gray-200">
+          <h2 className="text-xl sm:text-2xl font-bold mb-4 sm:mb-6 text-gray-800 flex items-center">
             <FontAwesomeIcon icon="user" className="mr-3 text-primary" />
             Meu Perfil
           </h2>
 
-          <div className="bg-white p-6 rounded-lg shadow-md border border-gray-200">
+          <div className="bg-white p-4 sm:p-6 rounded-lg shadow-md border border-gray-200">
             <form onSubmit={handleSubmit}>
-              <div className="mb-8">
+              <div className="mb-6">
                 <h3 className="text-lg font-medium mb-3 text-gray-700">
                   <FontAwesomeIcon icon="palette" className="mr-2" />
                   Escolha seu ícone de perfil
                 </h3>
 
-                <div className="grid grid-cols-5 gap-4 mt-3">
+                {/* Preview do ícone selecionado - Mais visível em mobile */}
+                <div className="flex justify-center mb-4">
+                  <div
+                    className={`w-20 h-20 ${profileData.iconColor} rounded-full flex items-center justify-center shadow-md`}
+                  >
+                    <FontAwesomeIcon
+                      icon={profileData.preferredIcon}
+                      className="text-3xl text-white"
+                    />
+                  </div>
+                </div>
+
+                {/* Grid de ícones responsivo */}
+                <div className="grid grid-cols-4 sm:grid-cols-5 gap-2 sm:gap-4 mt-3">
                   {availableIcons.map((item) => (
                     <div
                       key={item.icon}
                       onClick={() => handleIconSelect(item.icon)}
-                      className={`cursor-pointer flex flex-col items-center p-3 rounded-lg transition-all ${
+                      className={`cursor-pointer flex flex-col items-center p-2 rounded-lg transition-all ${
                         profileData.preferredIcon === item.icon
-                          ? "bg-primary/10 border-2 border-primary scale-110"
+                          ? "bg-primary/10 border-2 border-primary scale-105"
                           : "bg-gray-50 hover:bg-gray-100 border border-gray-200"
                       }`}
                     >
                       <div
-                        className={`w-12 h-12 rounded-full flex items-center justify-center mb-2 ${
+                        className={`w-10 h-10 sm:w-12 sm:h-12 rounded-full flex items-center justify-center mb-1 sm:mb-2 ${
                           profileData.preferredIcon === item.icon
                             ? profileData.iconColor
                             : "bg-gray-200 text-gray-600"
@@ -191,7 +204,7 @@ const Profile = () => {
                       >
                         <FontAwesomeIcon
                           icon={item.icon}
-                          className="text-xl text-white"
+                          className="text-lg sm:text-xl text-white"
                         />
                       </div>
                       <span className="text-xs text-center">{item.label}</span>
@@ -203,12 +216,9 @@ const Profile = () => {
                   <FontAwesomeIcon icon="palette" className="mr-2" />
                   Escolha a cor do seu ícone
                 </h4>
-                <p className="text-sm text-gray-500 mb-3">
-                  Esta cor será exibida no seu perfil e nas configurações do
-                  casal.
-                </p>
 
-                <div className="grid grid-cols-8 gap-2">
+                {/* Seletor de cores responsivo */}
+                <div className="grid grid-cols-8 gap-1 sm:gap-2">
                   {colorOptions.map((color) => (
                     <button
                       key={color}
@@ -224,7 +234,7 @@ const Profile = () => {
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     <FontAwesomeIcon icon="user" className="mr-2" />
@@ -254,7 +264,7 @@ const Profile = () => {
                   />
                 </div>
 
-                <div className="md:col-span-2">
+                <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     <FontAwesomeIcon icon="info-circle" className="mr-2" />
                     Bio
@@ -305,7 +315,7 @@ const Profile = () => {
                 )}
 
                 {profileData.relationshipStatus !== "single" && (
-                  <div className="md:col-span-2">
+                  <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
                       <FontAwesomeIcon icon="user-friends" className="mr-2" />
                       ID do Parceiro(a)
@@ -318,10 +328,15 @@ const Profile = () => {
                       className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary/50"
                       placeholder="ID do usuário do seu parceiro(a)"
                     />
-                    <p className="text-xs text-gray-500 mt-1 flex items-center">
-                      <FontAwesomeIcon icon="info-circle" className="mr-1" />
-                      Para vincular perfis, peça para seu parceiro(a) verificar
-                      o ID dele(a) no perfil.
+                    <p className="text-xs text-gray-500 mt-1 flex items-start">
+                      <FontAwesomeIcon
+                        icon="info-circle"
+                        className="mr-1 mt-0.5 flex-shrink-0"
+                      />
+                      <span>
+                        Para vincular perfis, peça para seu parceiro(a)
+                        verificar o ID dele(a) no perfil.
+                      </span>
                     </p>
                   </div>
                 )}
@@ -331,7 +346,7 @@ const Profile = () => {
                 <button
                   type="submit"
                   disabled={saving}
-                  className={`px-6 py-2 rounded-md bg-pink-300 text-white flex items-center gap-2 ${
+                  className={`w-full sm:w-auto px-6 py-2 rounded-md text-white flex items-center justify-center gap-2 ${
                     saving
                       ? "bg-gray-400 cursor-not-allowed"
                       : "bg-gradient-to-r from-primary to-secondary hover:from-primary/90 hover:to-secondary/90 transform hover:scale-[1.02] transition-all duration-200"
@@ -347,29 +362,29 @@ const Profile = () => {
             </form>
           </div>
 
-          <div className="bg-white p-6 rounded-lg shadow-md mt-6 border border-gray-200">
-            <h3 className="text-xl font-semibold mb-4 text-gray-800 flex items-center">
+          <div className="bg-white p-4 sm:p-6 rounded-lg shadow-md mt-6 border border-gray-200">
+            <h3 className="text-lg sm:text-xl font-semibold mb-4 text-gray-800 flex items-center">
               <FontAwesomeIcon icon="id-card" className="mr-2 text-primary" />
               Informações da Conta
             </h3>
             <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
-              <p className="text-gray-700 mb-2 flex items-center">
+              <p className="text-gray-700 mb-2 flex flex-wrap items-center">
                 <FontAwesomeIcon
                   icon="fingerprint"
                   className="mr-2 text-gray-600"
                 />
-                <strong>ID do Usuário:</strong>
-                <code className="bg-gray-100 px-2 py-1 rounded ml-2 text-sm">
+                <strong className="mr-1">ID do Usuário:</strong>
+                <code className="bg-gray-100 px-2 py-1 rounded text-sm break-all">
                   {auth.currentUser?.uid}
                 </code>
               </p>
-              <p className="text-gray-700 flex items-center">
+              <p className="text-gray-700 flex flex-wrap items-center">
                 <FontAwesomeIcon
                   icon="envelope"
                   className="mr-2 text-gray-600"
                 />
-                <strong>Email:</strong>
-                <span className="ml-2">{auth.currentUser?.email}</span>
+                <strong className="mr-1">Email:</strong>
+                <span className="break-all">{auth.currentUser?.email}</span>
               </p>
             </div>
           </div>
