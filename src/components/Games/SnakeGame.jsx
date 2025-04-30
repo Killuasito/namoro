@@ -15,6 +15,7 @@ const SnakeGame = ({ onClose }) => {
   const [score, setScore] = useState(0);
   const [highScore, setHighScore] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
+  const [touchStart, setTouchStart] = useState(null);
 
   const generateFood = useCallback(() => {
     const newFood = [
@@ -160,6 +161,44 @@ const SnakeGame = ({ onClose }) => {
     setIsPaused(false);
   };
 
+  const handleTouchStart = (e) => {
+    const touch = e.touches[0];
+    setTouchStart({
+      x: touch.clientX,
+      y: touch.clientY,
+    });
+  };
+
+  const handleTouchMove = (e) => {
+    if (!touchStart) return;
+
+    const touch = e.touches[0];
+    const deltaX = touch.clientX - touchStart.x;
+    const deltaY = touch.clientY - touchStart.y;
+
+    // Determine swipe direction based on largest delta
+    if (Math.abs(deltaX) > Math.abs(deltaY)) {
+      // Horizontal swipe
+      if (deltaX > 0 && direction !== "LEFT") {
+        setDirection("RIGHT");
+      } else if (deltaX < 0 && direction !== "RIGHT") {
+        setDirection("LEFT");
+      }
+    } else {
+      // Vertical swipe
+      if (deltaY > 0 && direction !== "UP") {
+        setDirection("DOWN");
+      } else if (deltaY < 0 && direction !== "DOWN") {
+        setDirection("UP");
+      }
+    }
+
+    setTouchStart({
+      x: touch.clientX,
+      y: touch.clientY,
+    });
+  };
+
   return (
     <div className="fixed inset-0 backdrop-blur-lg flex items-center justify-center z-50">
       <div className="bg-white p-6 rounded-xl shadow-lg">
@@ -179,7 +218,9 @@ const SnakeGame = ({ onClose }) => {
         </div>
 
         <div
-          className="relative"
+          className="relative touch-none"
+          onTouchStart={handleTouchStart}
+          onTouchMove={handleTouchMove}
           style={{
             width: GRID_SIZE * CELL_SIZE,
             height: GRID_SIZE * CELL_SIZE,
@@ -241,7 +282,9 @@ const SnakeGame = ({ onClose }) => {
         )}
 
         <div className="mt-4 text-sm text-gray-500 text-center">
-          Use as setas para mover • Espaço para pausar
+          {window.innerWidth < 768
+            ? "Deslize para controlar • Toque para pausar"
+            : "Use as setas para mover • Espaço para pausar"}
         </div>
       </div>
     </div>

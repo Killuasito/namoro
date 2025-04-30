@@ -8,6 +8,7 @@ import {
   where,
   updateDoc,
   doc,
+  getDoc,
 } from "firebase/firestore";
 import { db, auth } from "../../firebase";
 
@@ -29,6 +30,33 @@ const TicTacToe = ({ onClose, partner }) => {
   const [gameId, setGameId] = useState(null);
   const [score, setScore] = useState({ player1: 0, player2: 0 });
   const [loading, setLoading] = useState(true);
+  const [gameData, setGameData] = useState(null); // Add gameData state
+
+  const resetGame = async () => {
+    if (!gameId) return;
+
+    try {
+      const newGameData = {
+        players: [auth.currentUser.uid, partner.id],
+        board: Array(9).fill(null),
+        currentPlayer: auth.currentUser.uid,
+        playerX:
+          gameData.playerX === auth.currentUser.uid
+            ? partner.id
+            : auth.currentUser.uid, // Alterna quem é X
+        status: "active",
+        createdAt: new Date(),
+      };
+
+      await updateDoc(doc(db, "tic_tac_toe_games", gameId), newGameData);
+      setBoard(Array(9).fill(null));
+      setIsXNext(true);
+      setWinner(null);
+      setGameData(newGameData); // Atualiza o gameData local também
+    } catch (error) {
+      console.error("Erro ao reiniciar o jogo:", error);
+    }
+  };
 
   useEffect(() => {
     const setupGame = async () => {
@@ -40,19 +68,47 @@ const TicTacToe = ({ onClose, partner }) => {
 
       const unsubscribe = onSnapshot(q, async (snapshot) => {
         if (snapshot.empty) {
-          const newGame = await addDoc(collection(db, "tic_tac_toe_games"), {
+          const newGameData = {
             players: [auth.currentUser.uid, partner.id],
             board: Array(9).fill(null),
             currentPlayer: auth.currentUser.uid,
+            playerX: auth.currentUser.uid,
             status: "active",
             createdAt: new Date(),
-          });
+          };
+
+          const newGame = await addDoc(
+            collection(db, "tic_tac_toe_games"),
+            newGameData
+          );
           setGameId(newGame.id);
+          setGameData(newGameData); // Set initial game data
         } else {
           const game = snapshot.docs[0];
+          const currentGameData = game.data();
           setGameId(game.id);
-          setBoard(game.data().board);
-          setIsXNext(game.data().currentPlayer === auth.currentUser.uid);
+          setGameData(currentGameData);
+          setBoard(currentGameData.board);
+          setIsXNext(currentGameData.currentPlayer === auth.currentUser.uid);
+
+          // Atualizar vencedor e placar
+          if (currentGameData.winner) {
+            setWinner(currentGameData.winner);
+            if (currentGameData.winner !== "draw") {
+              setScore((prev) => ({
+                player1:
+                  currentGameData.winner === auth.currentUser.uid
+                    ? prev.player1 + 1
+                    : prev.player1,
+                player2:
+                  currentGameData.winner === partner.id
+                    ? prev.player2 + 1
+                    : prev.player2,
+              }));
+            }
+          } else if (!currentGameData.board.includes(null)) {
+            setWinner("draw");
+          }
         }
         setLoading(false);
       });
@@ -82,13 +138,41 @@ const TicTacToe = ({ onClose, partner }) => {
   const handleClick = async (i) => {
     if (!gameId || board[i] || winner || !isXNext) return;
 
-    const newBoard = [...board];
-    newBoard[i] = auth.currentUser.uid === partner.id ? "O" : "X";
+    const gameRef = doc(db, "tic_tac_toe_games", gameId);
+    const gameDoc = await getDoc(gameRef);
+    const gameData = gameDoc.data();
 
-    await updateDoc(doc(db, "tic_tac_toe_games", gameId), {
+    const newBoard = [...board];
+    const symbol = auth.currentUser.uid === gameData.playerX ? "X" : "O";
+    newBoard[i] = symbol;
+
+    // Verificar vencedor antes de atualizar
+    const winningSymbol = calculateWinner(newBoard);
+    const isDraw = !newBoard.includes(null);
+
+    // Determinar o vencedor baseado no símbolo
+    const winnerId =
+      winningSymbol === "X"
+        ? gameData.playerX
+        : winningSymbol === "O"
+        ? gameData.playerX === auth.currentUser.uid
+          ? partner.id
+          : auth.currentUser.uid
+        : null;
+
+    await updateDoc(gameRef, {
       board: newBoard,
       currentPlayer: partner.id,
+      winner: winnerId || (isDraw ? "draw" : null),
+      status: winnerId || isDraw ? "finished" : "active",
     });
+
+    if (winnerId) {
+      setWinner(winnerId);
+      saveScore(winnerId);
+    } else if (isDraw) {
+      setWinner("draw");
+    }
   };
 
   const saveScore = async (winner) => {
@@ -126,12 +210,21 @@ const TicTacToe = ({ onClose, partner }) => {
       <div className="bg-white p-6 rounded-xl max-w-lg w-full">
         <div className="flex justify-between items-center mb-6">
           <h3 className="text-xl font-bold text-gray-800">Jogo da Velha</h3>
-          <button
-            onClick={onClose}
-            className="text-gray-400 hover:text-gray-600"
-          >
-            <FontAwesomeIcon icon="times" />
-          </button>
+          <div className="flex gap-2">
+            <button
+              onClick={resetGame}
+              className="text-gray-400 hover:text-gray-600"
+              title="Reiniciar jogo"
+            >
+              <FontAwesomeIcon icon="redo" />
+            </button>
+            <button
+              onClick={onClose}
+              className="text-gray-400 hover:text-gray-600"
+            >
+              <FontAwesomeIcon icon="times" />
+            </button>
+          </div>
         </div>
 
         {loading ? (
@@ -143,14 +236,19 @@ const TicTacToe = ({ onClose, partner }) => {
           <>
             <div className="flex justify-center mb-4 gap-8">
               <div className="text-center">
-                <p className="text-sm text-gray-600">Você (X)</p>
+                <p className="text-sm text-gray-600">
+                  {auth.currentUser.uid === gameData?.playerX
+                    ? "Você (X)"
+                    : "Você (O)"}
+                </p>
                 <p className="text-2xl font-bold text-pink-500">
                   {score.player1}
                 </p>
               </div>
               <div className="text-center">
                 <p className="text-sm text-gray-600">
-                  {partner?.displayName} (O)
+                  {partner?.displayName} (
+                  {auth.currentUser.uid === gameData?.playerX ? "O" : "X"})
                 </p>
                 <p className="text-2xl font-bold text-blue-500">
                   {score.player2}
@@ -164,15 +262,23 @@ const TicTacToe = ({ onClose, partner }) => {
 
             <div className="text-center">
               {winner ? (
-                <p className="text-lg font-semibold mb-4">
-                  {winner === "draw"
-                    ? "Empate!"
-                    : `Vencedor: ${
-                        winner === auth.currentUser.uid
-                          ? "Você"
-                          : partner.displayName
-                      }`}
-                </p>
+                <div>
+                  <p className="text-lg font-semibold mb-4">
+                    {winner === "draw"
+                      ? "Empate!"
+                      : `Vencedor: ${
+                          winner === auth.currentUser.uid
+                            ? "Você"
+                            : partner.displayName
+                        }`}
+                  </p>
+                  <button
+                    onClick={resetGame}
+                    className="mt-2 px-6 py-2 bg-pink-300 text-white rounded-lg hover:bg-pink-400"
+                  >
+                    Jogar Novamente
+                  </button>
+                </div>
               ) : (
                 <p className="text-lg text-gray-600">
                   {isXNext ? "Sua vez" : `Vez de ${partner?.displayName}`}
