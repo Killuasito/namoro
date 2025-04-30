@@ -16,8 +16,18 @@ import { createPartnerNotification } from "../utils/notifications";
 const DreamsWishes = () => {
   const [dreams, setDreams] = useState([]);
   const [newDream, setNewDream] = useState("");
-  const [dreamType, setDreamType] = useState("meta"); // meta ou sonho
+  const [dreamType, setDreamType] = useState("meta");
   const [currentUser, setCurrentUser] = useState(null);
+  const [targetDate, setTargetDate] = useState("");
+  const [editing, setEditing] = useState(null);
+  const [isPinned, setIsPinned] = useState(false);
+
+  const adjustDate = (date) => {
+    if (!date) return null;
+    const d = new Date(date);
+    d.setMinutes(d.getMinutes() + d.getTimezoneOffset());
+    return d.toISOString().split("T")[0];
+  };
 
   useEffect(() => {
     const loadUserData = async () => {
@@ -55,15 +65,18 @@ const DreamsWishes = () => {
     if (!newDream.trim()) return;
 
     try {
-      const dreamRef = await addDoc(collection(db, "dreams"), {
+      const dreamData = {
         text: newDream,
         type: dreamType,
         completed: false,
         createdAt: new Date(),
         authorId: auth.currentUser.uid,
-      });
+        targetDate: targetDate ? adjustDate(targetDate) : null,
+        pinned: isPinned,
+      };
 
-      // Notificar o parceiro
+      const dreamRef = await addDoc(collection(db, "dreams"), dreamData);
+
       if (currentUser?.relationship?.partnerId) {
         await createPartnerNotification(
           currentUser.relationship.partnerId,
@@ -80,8 +93,51 @@ const DreamsWishes = () => {
       }
 
       setNewDream("");
+      setTargetDate("");
+      setIsPinned(false);
     } catch (error) {
       console.error("Erro ao adicionar sonho/meta:", error);
+    }
+  };
+
+  const startEditing = (dream) => {
+    setEditing(dream);
+    setNewDream(dream.text);
+    setDreamType(dream.type);
+    setTargetDate(dream.targetDate || "");
+    setIsPinned(dream.pinned || false);
+  };
+
+  const updateDream = async () => {
+    if (!editing || !newDream.trim()) return;
+
+    try {
+      const dreamRef = doc(db, "dreams", editing.id);
+      await updateDoc(dreamRef, {
+        text: newDream,
+        type: dreamType,
+        targetDate: targetDate || null,
+        pinned: isPinned,
+        updatedAt: new Date(),
+      });
+
+      setEditing(null);
+      setNewDream("");
+      setTargetDate("");
+      setIsPinned(false);
+    } catch (error) {
+      console.error("Erro ao atualizar:", error);
+    }
+  };
+
+  const togglePin = async (id, currentPinned) => {
+    try {
+      const dreamRef = doc(db, "dreams", id);
+      await updateDoc(dreamRef, {
+        pinned: !currentPinned,
+      });
+    } catch (error) {
+      console.error("Erro ao fixar/desafixar:", error);
     }
   };
 
@@ -104,6 +160,229 @@ const DreamsWishes = () => {
     }
   };
 
+  const sortDreams = (items) => {
+    return items.sort((a, b) => {
+      if (a.pinned && !b.pinned) return -1;
+      if (!a.pinned && b.pinned) return 1;
+
+      if (a.targetDate && b.targetDate) {
+        return new Date(a.targetDate) - new Date(b.targetDate);
+      }
+      if (a.targetDate) return -1;
+      if (b.targetDate) return 1;
+
+      return b.createdAt - a.createdAt;
+    });
+  };
+
+  const renderForm = () => (
+    <div className="flex flex-col gap-4">
+      {/* Radio buttons para tipo */}
+      <div className="bg-gray-50 p-4 rounded-lg flex flex-col gap-4">
+        <div className="flex items-center gap-4">
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input
+              type="radio"
+              name="tipo"
+              value="meta"
+              checked={dreamType === "meta"}
+              onChange={(e) => setDreamType(e.target.value)}
+              className="w-4 h-4 text-pink-300 focus:ring-pink-200"
+            />
+            <span className="text-sm text-gray-600">Meta</span>
+          </label>
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input
+              type="radio"
+              name="tipo"
+              value="sonho"
+              checked={dreamType === "sonho"}
+              onChange={(e) => setDreamType(e.target.value)}
+              className="w-4 h-4 text-pink-300 focus:ring-pink-200"
+            />
+            <span className="text-sm text-gray-600">Sonho</span>
+          </label>
+        </div>
+      </div>
+
+      <input
+        type="text"
+        placeholder={`${editing ? "Atualizar" : "Adicionar"} ${
+          dreamType === "meta" ? "meta" : "sonho"
+        }...`}
+        value={newDream}
+        onChange={(e) => setNewDream(e.target.value)}
+        className="px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-300"
+      />
+
+      <div className="flex flex-col gap-4">
+        <div className="w-full">
+          <label className="block text-sm text-gray-600 mb-1">Data Alvo</label>
+          <input
+            type="date"
+            value={targetDate}
+            onChange={(e) => setTargetDate(e.target.value)}
+            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-300"
+          />
+        </div>
+
+        <div className="w-full">
+          <label className="flex items-center gap-2 cursor-pointer group">
+            <div className="relative">
+              <input
+                type="checkbox"
+                checked={isPinned}
+                onChange={(e) => setIsPinned(e.target.checked)}
+                className="peer sr-only"
+              />
+              <div className="h-4 w-4 border border-gray-300 rounded bg-white peer-checked:bg-pink-300 peer-checked:border-pink-300 transition-colors">
+                {isPinned && (
+                  <FontAwesomeIcon
+                    icon="check"
+                    className="h-3 w-3 text-white absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2"
+                  />
+                )}
+              </div>
+            </div>
+            <span className="text-sm text-gray-600 group-hover:text-gray-800">
+              Fixar
+            </span>
+          </label>
+        </div>
+      </div>
+
+      <button
+        onClick={editing ? updateDream : handleAddDream}
+        className="px-6 py-3 bg-pink-300 hover:bg-pink-400 text-white rounded-lg transition-all duration-200"
+      >
+        <FontAwesomeIcon icon={editing ? "edit" : "plus"} className="mr-2" />
+        {editing ? "Atualizar" : "Adicionar"}
+      </button>
+    </div>
+  );
+
+  const renderDreamItem = (dream) => {
+    const isAuthor = dream.authorId === auth.currentUser?.uid;
+
+    return (
+      <li
+        key={dream.id}
+        className={`flex flex-col sm:flex-row sm:items-center justify-between p-4 rounded-lg border
+          ${
+            dream.completed
+              ? "bg-green-50 border-green-200"
+              : "bg-gray-50 border-gray-200"
+          }
+          ${
+            dream.pinned
+              ? "border-pink-300 border-2 border-dashed relative"
+              : ""
+          }
+          transition-all duration-200 hover:shadow-md group gap-4`}
+      >
+        {dream.pinned && (
+          <div className="absolute -top-2 left-2 bg-pink-100 px-2 py-0.5 rounded-full text-xs text-pink-500">
+            <FontAwesomeIcon icon="thumbtack" className="mr-1" />
+            Fixado
+          </div>
+        )}
+
+        <div className="flex items-center gap-3 flex-1">
+          <div
+            className={`p-2 rounded-full ${
+              dream.completed
+                ? "bg-green-100"
+                : dream.type === "meta"
+                ? "bg-emerald-100"
+                : "bg-blue-100"
+            }`}
+          >
+            <FontAwesomeIcon
+              icon={
+                dream.completed
+                  ? "check"
+                  : dream.type === "meta"
+                  ? "bullseye"
+                  : "star"
+              }
+              className={
+                dream.completed
+                  ? "text-green-500"
+                  : dream.type === "meta"
+                  ? "text-emerald-500"
+                  : "text-blue-500"
+              }
+            />
+          </div>
+
+          <div className="flex-1">
+            <span
+              className={
+                dream.completed
+                  ? "line-through text-gray-500"
+                  : "text-gray-700 font-medium"
+              }
+            >
+              {dream.text}
+            </span>
+            {dream.targetDate && (
+              <p className="text-xs text-gray-500 mt-1">
+                Data alvo:{" "}
+                {new Date(adjustDate(dream.targetDate)).toLocaleDateString()}
+              </p>
+            )}
+          </div>
+        </div>
+
+        <div className="flex gap-2 justify-end">
+          <button
+            onClick={() => togglePin(dream.id, dream.pinned)}
+            className={`p-2 rounded-lg transition-all duration-200 ${
+              dream.pinned
+                ? "bg-pink-300 text-white"
+                : "bg-gray-200 hover:bg-gray-300"
+            }`}
+            title={dream.pinned ? "Desafixar" : "Fixar"}
+          >
+            <FontAwesomeIcon icon="thumbtack" />
+          </button>
+
+          <button
+            onClick={() => toggleComplete(dream.id, dream.completed)}
+            className={`p-2 rounded-lg text-white flex items-center transition-all duration-200 ${
+              dream.completed
+                ? "bg-amber-500 hover:bg-amber-600"
+                : "bg-green-500 hover:bg-green-600"
+            }`}
+            title={dream.completed ? "Reabrir" : "Completar"}
+          >
+            <FontAwesomeIcon icon={dream.completed ? "redo" : "check"} />
+          </button>
+
+          {isAuthor && (
+            <>
+              <button
+                onClick={() => startEditing(dream)}
+                className="p-2 rounded-lg bg-blue-500 hover:bg-blue-600 text-white"
+                title="Editar"
+              >
+                <FontAwesomeIcon icon="edit" />
+              </button>
+
+              <button
+                onClick={() => deleteDream(dream.id)}
+                className="p-2 rounded-lg bg-red-500 hover:bg-red-600 text-white"
+                title="Excluir"
+              >
+                <FontAwesomeIcon icon="trash" />
+              </button>
+            </>
+          )}
+        </div>
+      </li>
+    );
+  };
+
   return (
     <div className="container mx-auto">
       <div className="bg-white rounded-xl p-8 shadow-md border border-gray-200">
@@ -117,80 +396,10 @@ const DreamsWishes = () => {
         <div className="mb-10 bg-white p-8 rounded-xl shadow-md border border-gray-200">
           <h3 className="font-semibold text-xl mb-6 text-gray-700 flex items-center">
             <FontAwesomeIcon icon="plus" className="mr-3 text-primary" />
-            Adicionar Novo
+            {editing ? "Editar" : "Adicionar Novo"}
           </h3>
 
-          <div className="flex flex-col gap-5">
-            {/* Modificando para colocar os tipos um abaixo do outro em vez de lado a lado */}
-            <div className="bg-gray-50 p-4 rounded-lg flex flex-col gap-4">
-              {/* Primeiro a Meta */}
-              <div className="flex items-center">
-                <input
-                  type="radio"
-                  id="tipoMeta"
-                  name="tipo"
-                  value="meta"
-                  checked={dreamType === "meta"}
-                  onChange={() => setDreamType("meta")}
-                  className="mr-3 h-5 w-5 accent-primary cursor-pointer"
-                />
-                <label
-                  htmlFor="tipoMeta"
-                  className="text-gray-700 font-medium cursor-pointer flex items-center"
-                >
-                  <div className="bg-emerald-100 text-emerald-600 p-2 rounded-lg mr-2">
-                    <FontAwesomeIcon icon="bullseye" />
-                  </div>
-                  Meta
-                </label>
-              </div>
-
-              {/* Depois o Sonho */}
-              <div className="flex items-center">
-                <input
-                  type="radio"
-                  id="tipoSonho"
-                  name="tipo"
-                  value="sonho"
-                  checked={dreamType === "sonho"}
-                  onChange={() => setDreamType("sonho")}
-                  className="mr-3 h-5 w-5 accent-primary cursor-pointer"
-                />
-                <label
-                  htmlFor="tipoSonho"
-                  className="text-gray-700 font-medium cursor-pointer flex items-center"
-                >
-                  <div className="bg-blue-100 text-blue-600 p-2 rounded-lg mr-2">
-                    <FontAwesomeIcon icon="star" />
-                  </div>
-                  Sonho
-                </label>
-              </div>
-            </div>
-
-            <div className="flex gap-3 flex-col sm:flex-row">
-              <input
-                type="text"
-                placeholder={`Adicione ${dreamType === "meta" ? "uma" : "um"} ${
-                  dreamType === "meta" ? "meta" : "sonho"
-                }...`}
-                value={newDream}
-                onChange={(e) => setNewDream(e.target.value)}
-                className="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all duration-200"
-              />
-              <button
-                onClick={handleAddDream}
-                className={`px-6 py-3 bg-gradient-to-r ${
-                  dreamType === "meta"
-                    ? "from-emerald-500 to-green-600"
-                    : "from-blue-500 to-indigo-500"
-                } text-white rounded-lg hover:shadow-lg hover:shadow-primary/20 transform hover:scale-[1.02] transition-all duration-300 flex items-center justify-center gap-2 sm:w-auto w-full`}
-              >
-                <FontAwesomeIcon icon="plus" />
-                Adicionar {dreamType === "meta" ? "Meta" : "Sonho"}
-              </button>
-            </div>
-          </div>
+          {renderForm()}
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
@@ -204,71 +413,11 @@ const DreamsWishes = () => {
 
             <div className="p-5">
               <ul className="space-y-4">
-                {dreams
-                  .filter(
+                {sortDreams(
+                  dreams.filter(
                     (dream) => dream.type === "meta" || dream.type === "desejo"
                   )
-                  .map((dream) => (
-                    <li
-                      key={dream.id}
-                      className={`flex justify-between items-center p-4 rounded-lg border ${
-                        dream.completed
-                          ? "bg-green-50 border-green-200 text-gray-600"
-                          : "bg-gray-50 border-gray-200"
-                      } transition-all duration-200 hover:shadow-md group`}
-                    >
-                      <div className="flex items-center">
-                        <div
-                          className={`mr-3 p-2 rounded-full ${
-                            dream.completed ? "bg-green-100" : "bg-emerald-100"
-                          }`}
-                        >
-                          <FontAwesomeIcon
-                            icon={dream.completed ? "check" : "bullseye"}
-                            className={
-                              dream.completed
-                                ? "text-green-500"
-                                : "text-emerald-500"
-                            }
-                          />
-                        </div>
-                        <span
-                          className={
-                            dream.completed
-                              ? "line-through text-gray-500"
-                              : "text-gray-700 font-medium"
-                          }
-                        >
-                          {dream.text}
-                        </span>
-                      </div>
-
-                      <div className="flex gap-2 opacity-80 group-hover:opacity-100 transition-opacity">
-                        <button
-                          onClick={() =>
-                            toggleComplete(dream.id, dream.completed)
-                          }
-                          className={`p-2 rounded-lg text-white flex items-center transition-all duration-200 ${
-                            dream.completed
-                              ? "bg-amber-500 hover:bg-amber-600"
-                              : "bg-green-500 hover:bg-green-600"
-                          }`}
-                          title={dream.completed ? "Reabrir" : "Completar"}
-                        >
-                          <FontAwesomeIcon
-                            icon={dream.completed ? "redo" : "check"}
-                          />
-                        </button>
-                        <button
-                          onClick={() => deleteDream(dream.id)}
-                          className="p-2 rounded-lg bg-red-500 hover:bg-red-600 text-white transition-all duration-200 flex items-center"
-                          title="Excluir"
-                        >
-                          <FontAwesomeIcon icon="trash" />
-                        </button>
-                      </div>
-                    </li>
-                  ))}
+                ).map((dream) => renderDreamItem(dream))}
 
                 {dreams.filter(
                   (dream) => dream.type === "meta" || dream.type === "desejo"
@@ -299,69 +448,9 @@ const DreamsWishes = () => {
 
             <div className="p-5">
               <ul className="space-y-4">
-                {dreams
-                  .filter((dream) => dream.type === "sonho")
-                  .map((dream) => (
-                    <li
-                      key={dream.id}
-                      className={`flex justify-between items-center p-4 rounded-lg border ${
-                        dream.completed
-                          ? "bg-green-50 border-green-200 text-gray-600"
-                          : "bg-gray-50 border-gray-200"
-                      } transition-all duration-200 hover:shadow-md group`}
-                    >
-                      <div className="flex items-center">
-                        <div
-                          className={`mr-3 p-2 rounded-full ${
-                            dream.completed ? "bg-green-100" : "bg-blue-100"
-                          }`}
-                        >
-                          <FontAwesomeIcon
-                            icon={dream.completed ? "check" : "star"}
-                            className={
-                              dream.completed
-                                ? "text-green-500"
-                                : "text-blue-500"
-                            }
-                          />
-                        </div>
-                        <span
-                          className={
-                            dream.completed
-                              ? "line-through text-gray-500"
-                              : "text-gray-700 font-medium"
-                          }
-                        >
-                          {dream.text}
-                        </span>
-                      </div>
-
-                      <div className="flex gap-2 opacity-80 group-hover:opacity-100 transition-opacity">
-                        <button
-                          onClick={() =>
-                            toggleComplete(dream.id, dream.completed)
-                          }
-                          className={`p-2 rounded-lg text-white flex items-center transition-all duration-200 ${
-                            dream.completed
-                              ? "bg-amber-500 hover:bg-amber-600"
-                              : "bg-green-500 hover:bg-green-600"
-                          }`}
-                          title={dream.completed ? "Reabrir" : "Completar"}
-                        >
-                          <FontAwesomeIcon
-                            icon={dream.completed ? "redo" : "check"}
-                          />
-                        </button>
-                        <button
-                          onClick={() => deleteDream(dream.id)}
-                          className="p-2 rounded-lg bg-red-500 hover:bg-red-600 text-white transition-all duration-200 flex items-center"
-                          title="Excluir"
-                        >
-                          <FontAwesomeIcon icon="trash" />
-                        </button>
-                      </div>
-                    </li>
-                  ))}
+                {sortDreams(
+                  dreams.filter((dream) => dream.type === "sonho")
+                ).map((dream) => renderDreamItem(dream))}
 
                 {dreams.filter((dream) => dream.type === "sonho").length ===
                   0 && (

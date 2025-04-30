@@ -92,6 +92,18 @@ import {
   faAngleLeft,
   faAngleRight,
   faFileDownload, // Adicionar ícone de download de arquivo
+  faThumbtack, // Changed from faThumbstack to faThumbtack
+  // Novos ícones adicionais
+  faPizzaSlice,
+  faGamepad,
+  faCompass,
+  faDog,
+  faCat,
+  faLeaf,
+  faFire,
+  faWater, // Add water icon
+  faLockOpen,
+  faKey,
 } from "@fortawesome/free-solid-svg-icons";
 
 // Import brand icons separately from the free-brands-svg-icons package
@@ -174,7 +186,19 @@ library.add(
   // Adicionar novos ícones adicionais
   faAngleLeft,
   faAngleRight,
-  faFileDownload // Adicionar ícone de download de arquivo
+  faFileDownload, // Adicionar ícone de download de arquivo
+  faThumbtack, // Changed from faThumbstack to faThumbtack
+  // Novos ícones adicionais
+  faPizzaSlice,
+  faGamepad,
+  faCompass,
+  faDog,
+  faCat,
+  faLeaf,
+  faFire,
+  faWater, // Replace faSnowflake with faWater
+  faLockOpen,
+  faKey
 );
 
 // CSS do Tailwind

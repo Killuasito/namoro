@@ -1,7 +1,12 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { doc, getDoc, updateDoc } from "firebase/firestore";
-import { updateProfile } from "firebase/auth";
+import {
+  updateProfile,
+  updatePassword,
+  EmailAuthProvider,
+  reauthenticateWithCredential,
+} from "firebase/auth";
 import { db, auth } from "../firebase";
 import Layout from "./Layout";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
@@ -17,9 +22,24 @@ const Profile = () => {
     relationshipStatus: "single",
     partnerId: "",
     anniversary: "",
-    preferredIcon: "user", // Ícone padrão
-    iconColor: "bg-blue-500", // Adicionar cor padrão do ícone
+    preferredIcon: "user",
+    iconColor: "bg-blue-500",
   });
+
+  const [passwordChange, setPasswordChange] = useState({
+    currentPassword: "",
+    newPassword: "",
+    confirmPassword: "",
+  });
+  const [passwordError, setPasswordError] = useState("");
+  const [passwordSuccess, setPasswordSuccess] = useState("");
+
+  const adjustDate = (date) => {
+    if (!date) return "";
+    const d = new Date(date);
+    d.setMinutes(d.getMinutes() + d.getTimezoneOffset());
+    return d.toISOString().split("T")[0];
+  };
 
   useEffect(() => {
     const loadUserProfile = async () => {
@@ -34,12 +54,14 @@ const Profile = () => {
           setProfileData({
             displayName: data.displayName || auth.currentUser.displayName || "",
             bio: data.bio || "",
-            dateOfBirth: data.dateOfBirth || "",
+            dateOfBirth: data.dateOfBirth ? adjustDate(data.dateOfBirth) : "",
             relationshipStatus: data.relationship?.status || "single",
             partnerId: data.relationship?.partnerId || "",
-            anniversary: data.relationship?.anniversary || "",
+            anniversary: data.relationship?.anniversary
+              ? adjustDate(data.relationship.anniversary)
+              : "",
             preferredIcon: data.preferredIcon || "user",
-            iconColor: data.iconColor || "bg-blue-500", // Carrega a cor personalizada
+            iconColor: data.iconColor || "bg-blue-500",
           });
         }
       } catch (error) {
@@ -63,26 +85,49 @@ const Profile = () => {
     { icon: "camera", label: "Câmera" },
     { icon: "moon", label: "Lua" },
     { icon: "sun", label: "Sol" },
+    { icon: "globe", label: "Mundo" },
+    { icon: "palette", label: "Arte" },
+    { icon: "compass", label: "Bússola" },
+    { icon: "gamepad", label: "Games" },
+    { icon: "pizza-slice", label: "Comida" },
+    { icon: "cat", label: "Gato" },
+    { icon: "dog", label: "Cachorro" },
+    { icon: "leaf", label: "Natureza" },
+    { icon: "fire", label: "Fogo" },
+    { icon: "water", label: "Água" },
   ];
 
-  // Opções de cores disponíveis para personalização
   const colorOptions = [
+    "bg-pink-300",
+    "bg-pink-400",
     "bg-pink-500",
+    "bg-red-300",
+    "bg-red-400",
     "bg-red-500",
+    "bg-orange-300",
+    "bg-orange-400",
     "bg-orange-500",
+    "bg-amber-300",
+    "bg-amber-400",
     "bg-amber-500",
-    "bg-yellow-500",
-    "bg-lime-500",
+    "bg-green-300",
+    "bg-green-400",
     "bg-green-500",
+    "bg-emerald-300",
+    "bg-emerald-400",
     "bg-emerald-500",
-    "bg-teal-500",
-    "bg-cyan-500",
-    "bg-sky-500",
+    "bg-blue-300",
+    "bg-blue-400",
     "bg-blue-500",
-    "bg-indigo-500",
-    "bg-violet-500",
+    "bg-sky-300",
+    "bg-sky-400",
+    "bg-sky-500",
+    "bg-purple-300",
+    "bg-purple-400",
     "bg-purple-500",
-    "bg-fuchsia-500",
+    "bg-violet-300",
+    "bg-violet-400",
+    "bg-violet-500",
   ];
 
   const handleInputChange = (e) => {
@@ -107,6 +152,36 @@ const Profile = () => {
     }));
   };
 
+  const handlePasswordChange = async (e) => {
+    e.preventDefault();
+    setPasswordError("");
+    setPasswordSuccess("");
+
+    if (passwordChange.newPassword !== passwordChange.confirmPassword) {
+      setPasswordError("As senhas não conferem");
+      return;
+    }
+
+    try {
+      const credential = EmailAuthProvider.credential(
+        auth.currentUser.email,
+        passwordChange.currentPassword
+      );
+
+      await reauthenticateWithCredential(auth.currentUser, credential);
+      await updatePassword(auth.currentUser, passwordChange.newPassword);
+
+      setPasswordSuccess("Senha atualizada com sucesso!");
+      setPasswordChange({
+        currentPassword: "",
+        newPassword: "",
+        confirmPassword: "",
+      });
+    } catch (error) {
+      setPasswordError("Erro ao alterar senha. Verifique sua senha atual.");
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setSaving(true);
@@ -123,13 +198,17 @@ const Profile = () => {
       await updateDoc(userRef, {
         displayName: profileData.displayName,
         preferredIcon: profileData.preferredIcon,
-        iconColor: profileData.iconColor, // Salvar a cor personalizada
+        iconColor: profileData.iconColor,
         bio: profileData.bio,
-        dateOfBirth: profileData.dateOfBirth,
+        dateOfBirth: profileData.dateOfBirth
+          ? adjustDate(profileData.dateOfBirth)
+          : null,
         relationship: {
           status: profileData.relationshipStatus,
           partnerId: profileData.partnerId,
-          anniversary: profileData.anniversary,
+          anniversary: profileData.anniversary
+            ? adjustDate(profileData.anniversary)
+            : null,
         },
         updatedAt: new Date(),
       });
@@ -154,6 +233,90 @@ const Profile = () => {
     );
   }
 
+  const passwordChangeForm = (
+    <div className="bg-white p-4 sm:p-6 rounded-lg shadow-md mt-6 border border-gray-200">
+      <h3 className="text-lg sm:text-xl font-semibold mb-4 text-pink-300 flex items-center">
+        <FontAwesomeIcon icon="key" className="mr-2" />
+        Alterar Senha
+      </h3>
+      <form onSubmit={handlePasswordChange} className="space-y-4">
+        <div>
+          <label className="block text-sm font-medium text-gray-700">
+            <FontAwesomeIcon icon="lock" className="mr-2" />
+            Senha Atual
+          </label>
+          <input
+            type="password"
+            value={passwordChange.currentPassword}
+            onChange={(e) =>
+              setPasswordChange((prev) => ({
+                ...prev,
+                currentPassword: e.target.value,
+              }))
+            }
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-pink-300"
+            required
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700">
+            <FontAwesomeIcon icon="key" className="mr-2" />
+            Nova Senha
+          </label>
+          <input
+            type="password"
+            value={passwordChange.newPassword}
+            onChange={(e) =>
+              setPasswordChange((prev) => ({
+                ...prev,
+                newPassword: e.target.value,
+              }))
+            }
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-pink-300"
+            required
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700">
+            <FontAwesomeIcon icon="lock-open" className="mr-2" />
+            Confirmar Nova Senha
+          </label>
+          <input
+            type="password"
+            value={passwordChange.confirmPassword}
+            onChange={(e) =>
+              setPasswordChange((prev) => ({
+                ...prev,
+                confirmPassword: e.target.value,
+              }))
+            }
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-pink-300"
+            required
+          />
+        </div>
+        {passwordError && (
+          <p className="text-red-500 text-sm flex items-center">
+            <FontAwesomeIcon icon="exclamation-circle" className="mr-2" />
+            {passwordError}
+          </p>
+        )}
+        {passwordSuccess && (
+          <p className="text-green-500 text-sm flex items-center">
+            <FontAwesomeIcon icon="check-circle" className="mr-2" />
+            {passwordSuccess}
+          </p>
+        )}
+        <button
+          type="submit"
+          className="w-full px-4 py-2 bg-pink-300 text-white rounded-md hover:bg-pink-400 transition-colors flex items-center justify-center gap-2"
+        >
+          <FontAwesomeIcon icon="key" />
+          Alterar Senha
+        </button>
+      </form>
+    </div>
+  );
+
   return (
     <Layout>
       <div className="container mx-auto px-4">
@@ -171,7 +334,6 @@ const Profile = () => {
                   Escolha seu ícone de perfil
                 </h3>
 
-                {/* Preview do ícone selecionado - Mais visível em mobile */}
                 <div className="flex justify-center mb-4">
                   <div
                     className={`w-20 h-20 ${profileData.iconColor} rounded-full flex items-center justify-center shadow-md`}
@@ -183,7 +345,6 @@ const Profile = () => {
                   </div>
                 </div>
 
-                {/* Grid de ícones responsivo */}
                 <div className="grid grid-cols-4 sm:grid-cols-5 gap-2 sm:gap-4 mt-3">
                   {availableIcons.map((item) => (
                     <div
@@ -217,7 +378,6 @@ const Profile = () => {
                   Escolha a cor do seu ícone
                 </h4>
 
-                {/* Seletor de cores responsivo */}
                 <div className="grid grid-cols-8 gap-1 sm:gap-2">
                   {colorOptions.map((color) => (
                     <button
@@ -348,8 +508,8 @@ const Profile = () => {
                   disabled={saving}
                   className={`w-full sm:w-auto px-6 py-2 rounded-md text-white flex items-center justify-center gap-2 ${
                     saving
-                      ? "bg-gray-400 cursor-not-allowed"
-                      : "bg-gradient-to-r from-primary to-secondary hover:from-primary/90 hover:to-secondary/90 transform hover:scale-[1.02] transition-all duration-200"
+                      ? "bg-pink-300 cursor-not-allowed"
+                      : "bg-pink-300 hover:from-primary/90 hover:to-secondary/90 transform hover:scale-[1.02] transition-all duration-200"
                   }`}
                 >
                   <FontAwesomeIcon
@@ -388,6 +548,8 @@ const Profile = () => {
               </p>
             </div>
           </div>
+
+          {passwordChangeForm}
         </div>
       </div>
     </Layout>

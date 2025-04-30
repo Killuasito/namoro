@@ -6,8 +6,30 @@ import {
   where,
   getDocs,
   orderBy,
+  updateDoc,
+  doc,
+  arrayUnion,
 } from "firebase/firestore";
 import { db } from "../firebase";
+import { getFCMToken } from "../firebase";
+
+/**
+ * Adiciona o token FCM do usuário ao Firestore
+ *
+ * @param {string} userId - ID do usuário
+ */
+export const saveUserFCMToken = async (userId) => {
+  try {
+    const token = await getFCMToken();
+    if (token) {
+      await updateDoc(doc(db, "users", userId), {
+        fcmTokens: arrayUnion(token),
+      });
+    }
+  } catch (error) {
+    console.error("Erro ao salvar token FCM:", error);
+  }
+};
 
 /**
  * Cria uma notificação para o parceiro quando um novo item é adicionado
@@ -31,6 +53,7 @@ export const createPartnerNotification = async (
   if (!recipientId) return; // Não envia notificação se não houver parceiro vinculado
 
   try {
+    // Criar notificação no Firestore
     const notificationData = {
       recipientId,
       senderId,
@@ -43,6 +66,21 @@ export const createPartnerNotification = async (
     };
 
     await addDoc(collection(db, "notifications"), notificationData);
+
+    // Enviar notificação push via Cloud Function
+    // Isso requer uma Cloud Function configurada no Firebase
+    const notificationRef = doc(db, "push_notifications", "queue");
+    await addDoc(collection(db, "push_notifications"), {
+      recipientId,
+      title: senderName,
+      body: message,
+      data: {
+        type,
+        itemId,
+      },
+      createdAt: serverTimestamp(),
+    });
+
     console.log("Notificação enviada para o parceiro");
   } catch (error) {
     console.error("Erro ao enviar notificação:", error);

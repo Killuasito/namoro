@@ -437,16 +437,6 @@ Após criar o índice, recarregue a página.`);
           <span className="text-primary">Quizzes para o Casal</span>
         </h2>
 
-        {/* Alerta informativo sobre o índice do Firestore */}
-        <div className="mb-6 bg-blue-50 p-4 rounded-lg border border-blue-200 text-blue-700">
-          <FontAwesomeIcon icon="info-circle" className="mr-2" />
-          <span>
-            Se os quizzes não estiverem sendo exibidos corretamente, pode ser
-            necessário criar um índice no Firestore. Entre em contato com o
-            administrador do sistema.
-          </span>
-        </div>
-
         {!partner && (
           <div className="mb-6 bg-yellow-50 p-4 rounded-lg border border-yellow-200 text-yellow-700">
             <FontAwesomeIcon icon="exclamation-triangle" className="mr-2" />

@@ -126,14 +126,14 @@ const Notifications = ({ onClose }) => {
   if (loading) {
     return (
       <div className="w-80 sm:w-96 max-h-[70vh] flex flex-col bg-white rounded-lg shadow-xl border border-gray-200 overflow-hidden">
-        <div className="p-3 bg-gradient-to-r from-primary to-secondary flex justify-between items-center sticky top-0">
-          <h3 className="font-semibold text-white">Notificações</h3>
-          <button onClick={onClose} className="text-white">
+        <div className="p-3 bg-white flex justify-between items-center sticky top-0">
+          <h3 className="font-semibold text-pink-500">Notificações</h3>
+          <button onClick={onClose} className="text-pink-500">
             <FontAwesomeIcon icon="times" />
           </button>
         </div>
         <div className="p-4 flex justify-center">
-          <div className="animate-spin h-5 w-5 border-t-2 border-b-2 border-primary rounded-full"></div>
+          <div className="animate-spin h-5 w-5 border-t-2 border-b-2 border-pink-500 rounded-full"></div>
         </div>
       </div>
     );
@@ -142,9 +142,9 @@ const Notifications = ({ onClose }) => {
   if (error) {
     return (
       <div className="w-80 sm:w-96 max-h-[70vh] flex flex-col bg-white rounded-lg shadow-xl border border-gray-200 overflow-hidden">
-        <div className="p-3 bg-gradient-to-r from-primary to-secondary flex justify-between items-center sticky top-0">
-          <h3 className="font-semibold text-white">Notificações</h3>
-          <button onClick={onClose} className="text-white">
+        <div className="p-3 bg-white flex justify-between items-center sticky top-0">
+          <h3 className="font-semibold text-pink-500">Notificações</h3>
+          <button onClick={onClose} className="text-pink-500">
             <FontAwesomeIcon icon="times" />
           </button>
         </div>
@@ -161,18 +161,18 @@ const Notifications = ({ onClose }) => {
 
   return (
     <div className="w-80 sm:w-96 max-h-[70vh] flex flex-col bg-white rounded-lg shadow-xl border border-gray-200 overflow-hidden">
-      <div className="p-3 bg-gradient-to-r from-primary to-secondary flex justify-between items-center sticky top-0">
-        <h3 className="font-semibold text-white">Notificações</h3>
+      <div className="p-3 bg-white flex justify-between items-center sticky top-0">
+        <h3 className="font-semibold text-pink-500">Notificações</h3>
         <div className="flex space-x-2">
           {notifications.some((n) => !n.read) && (
             <button
               onClick={markAllAsRead}
-              className="text-white text-xs bg-white/20 hover:bg-white/30 px-2 py-1 rounded"
+              className="text-pink-500 text-xs bg-pink-50 hover:bg-pink-100 px-2 py-1 rounded"
             >
               Marcar todas como lidas
             </button>
           )}
-          <button onClick={onClose} className="text-white">
+          <button onClick={onClose} className="text-pink-500">
             <FontAwesomeIcon icon="times" />
           </button>
         </div>

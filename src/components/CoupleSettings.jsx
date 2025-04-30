@@ -13,6 +13,7 @@ const CoupleSettings = () => {
     nickname: "",
     partnerNickname: "",
   });
+  const [showPartnerProfile, setShowPartnerProfile] = useState(false);
 
   useEffect(() => {
     const loadCoupleData = async () => {
@@ -179,6 +180,72 @@ const CoupleSettings = () => {
     }
   };
 
+  const PartnerProfileModal = ({ partner, onClose }) => (
+    <div className="fixed inset-0 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+      <div className="bg-white border border-gray-100 rounded-xl max-w-lg w-full max-h-[90vh] overflow-y-auto">
+        <div className="p-6 space-y-4">
+          <div className="flex justify-between items-center">
+            <h3 className="text-xl font-bold text-gray-800">
+              Perfil do Parceiro
+            </h3>
+            <button
+              onClick={onClose}
+              className="text-gray-500 hover:text-gray-700"
+            >
+              <FontAwesomeIcon icon="times" />
+            </button>
+          </div>
+
+          <div className="flex items-center space-x-4">
+            <div
+              className={`w-16 h-16 ${
+                partner.iconColor || "bg-blue-500"
+              } rounded-full flex items-center justify-center`}
+            >
+              <FontAwesomeIcon
+                icon={partner.preferredIcon || "user"}
+                className="text-2xl text-white"
+              />
+            </div>
+            <div>
+              <h4 className="text-lg font-semibold">{partner.displayName}</h4>
+              <p className="text-sm text-gray-500">{partner.email}</p>
+            </div>
+          </div>
+
+          <div className="space-y-3">
+            <div>
+              <label className="text-sm font-medium text-gray-700">Bio</label>
+              <p className="mt-1 text-gray-600">
+                {partner.bio || "Sem biografia"}
+              </p>
+            </div>
+
+            <div>
+              <label className="text-sm font-medium text-gray-700">
+                Data de Nascimento
+              </label>
+              <p className="mt-1 text-gray-600">
+                {partner.dateOfBirth
+                  ? new Date(partner.dateOfBirth).toLocaleDateString()
+                  : "Não informado"}
+              </p>
+            </div>
+
+            <div>
+              <label className="text-sm font-medium text-gray-700">
+                ID do Usuário
+              </label>
+              <p className="mt-1 text-gray-600 break-all bg-gray-100 p-2 rounded">
+                {partner.uid}
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -217,98 +284,101 @@ const CoupleSettings = () => {
   }
 
   return (
-    <div className="container mx-auto">
-      <div className="bg-white rounded-xl p-6 shadow-md border border-gray-200">
-        <h2 className="text-2xl font-bold mb-6 text-gray-800 flex items-center">
-          <FontAwesomeIcon icon="heart" className="mr-3 text-primary" />
+    <div className="container mx-auto px-4 sm:px-6">
+      <div className="bg-white rounded-xl p-4 sm:p-6 shadow-md border border-gray-200">
+        <h2 className="text-xl sm:text-2xl font-bold mb-4 sm:mb-6 text-gray-800 flex items-center">
+          <FontAwesomeIcon icon="heart" className="mr-2 sm:mr-3 text-primary" />
           Configurações do Casal
         </h2>
-        <div className="mb-6 p-4 bg-pink-50 rounded-lg">
-          <div className="flex items-center space-x-4">
+
+        {/* Card do Parceiro */}
+        <div className="mb-4 sm:mb-6 p-3 sm:p-4 bg-pink-50 rounded-lg">
+          <div className="flex flex-col sm:flex-row items-center sm:space-x-4 space-y-3 sm:space-y-0">
             <div
+              onClick={() => setShowPartnerProfile(true)}
               className={`w-16 h-16 ${
                 partner?.iconColor || "bg-blue-500"
-              } rounded-full flex items-center justify-center flex-shrink-0 text-white shadow-md`}
+              } rounded-full flex items-center justify-center flex-shrink-0 text-white shadow-md cursor-pointer hover:opacity-90 transition-opacity`}
             >
               <FontAwesomeIcon
                 icon={partner?.preferredIcon || "user"}
                 className="text-2xl"
               />
             </div>
-            <div>
+            <div className="text-center sm:text-left">
               <p className="font-medium text-gray-700">Parceiro(a):</p>
-              <p className="text-lg font-semibold text-gray-900">
+              <p className="text-base sm:text-lg font-semibold text-gray-900">
                 {partner?.displayName}
               </p>
-              <p className="text-sm text-gray-600">{partner?.email}</p>
+              <p className="text-xs sm:text-sm text-gray-600">
+                {partner?.email}
+              </p>
             </div>
           </div>
         </div>
-        <div className="mb-6 bg-gray-50 p-4 rounded-lg">
-          <h3 className="text-lg font-medium mb-3 text-gray-700">
+
+        {/* Ícones Personalizados */}
+        <div className="mb-4 sm:mb-6 bg-gray-50 p-3 sm:p-4 rounded-lg">
+          <h3 className="text-base sm:text-lg font-medium mb-3 text-gray-700 text-center">
             Seus Ícones Personalizados
           </h3>
-          <div className="flex justify-around items-center">
+          <div className="flex justify-center items-center space-x-4">
             <div className="flex flex-col items-center">
               <div
-                className={`w-16 h-16 ${
+                className={`w-12 h-12 sm:w-16 sm:h-16 ${
                   currentUser?.iconColor || "bg-blue-500"
                 } rounded-full flex items-center justify-center shadow-md mb-2`}
               >
                 <FontAwesomeIcon
                   icon={currentUser?.preferredIcon || "user"}
-                  className="text-2xl text-white"
+                  className="text-lg sm:text-2xl text-white"
                 />
               </div>
-              <p className="text-sm text-gray-600">Seu ícone</p>
-              <p className="text-xs text-gray-500 mt-2">
-                (Personalizável no seu perfil)
-              </p>
+              <p className="text-xs sm:text-sm text-gray-600">Seu ícone</p>
             </div>
             <FontAwesomeIcon
               icon="heart"
-              className="text-pink-300 text-2xl mx-4"
+              className="text-pink-300 text-xl sm:text-2xl mx-2 sm:mx-4"
             />
             <div className="flex flex-col items-center">
               <div
-                className={`w-16 h-16 ${
+                className={`w-12 h-12 sm:w-16 sm:h-16 ${
                   partner?.iconColor || "bg-blue-500"
                 } rounded-full flex items-center justify-center shadow-md mb-2`}
               >
                 <FontAwesomeIcon
                   icon={partner?.preferredIcon || "user"}
-                  className="text-2xl text-white"
+                  className="text-lg sm:text-2xl text-white"
                 />
               </div>
-              <p className="text-sm text-gray-600">Ícone do parceiro</p>
+              <p className="text-xs sm:text-sm text-gray-600">
+                Ícone do parceiro
+              </p>
             </div>
           </div>
         </div>
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="md:col-span-2">
+
+        {/* Formulário */}
+        <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
+          <div className="grid grid-cols-1 gap-4 sm:gap-6">
+            <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                <FontAwesomeIcon icon="heart" className="mr-1" />
                 <FontAwesomeIcon icon="calendar-alt" className="mr-2" />
-                Data do Aniversário de Relacionamento
+                Data do Aniversário
               </label>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-gray-400">
-                  <FontAwesomeIcon icon="calendar-alt" />
-                </div>
-                <input
-                  type="date"
-                  name="anniversary"
-                  value={coupleData.anniversary}
-                  onChange={handleInputChange}
-                  className="pl-10 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary/50"
-                />
-              </div>
+              <input
+                type="date"
+                name="anniversary"
+                value={coupleData.anniversary}
+                onChange={handleInputChange}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary/50 text-sm"
+              />
             </div>
+
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 <FontAwesomeIcon icon="id-card" className="mr-2" />
-                Seu apelido no relacionamento
+                Seu apelido
               </label>
               <input
                 type="text"
@@ -316,13 +386,14 @@ const CoupleSettings = () => {
                 value={coupleData.nickname}
                 onChange={handleInputChange}
                 placeholder="Como seu parceiro(a) te chama..."
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary/50"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary/50 text-sm"
               />
             </div>
+
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 <FontAwesomeIcon icon="id-card" className="mr-2" />
-                Apelido do seu parceiro(a)
+                Apelido do parceiro(a)
               </label>
               <input
                 type="text"
@@ -330,14 +401,15 @@ const CoupleSettings = () => {
                 value={coupleData.partnerNickname}
                 onChange={handleInputChange}
                 placeholder="Como você chama seu parceiro(a)..."
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary/50"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary/50 text-sm"
               />
             </div>
           </div>
-          <div className="mt-8 flex justify-center">
+
+          <div className="mt-6 flex justify-center">
             <button
               type="submit"
-              className="px-6 py-2 rounded-md text-white bg-pink-300 hover:from-primary/90 hover:to-secondary/90 transform hover:scale-[1.02] transition-all duration-200 flex items-center gap-2"
+              className="w-full sm:w-auto px-6 py-2 rounded-md text-white bg-pink-300 hover:bg-pink-400 transition-colors duration-200 flex items-center justify-center gap-2 text-sm sm:text-base"
             >
               <FontAwesomeIcon icon="save" />
               Salvar Configurações
@@ -345,6 +417,12 @@ const CoupleSettings = () => {
           </div>
         </form>
       </div>
+      {showPartnerProfile && (
+        <PartnerProfileModal
+          partner={partner}
+          onClose={() => setShowPartnerProfile(false)}
+        />
+      )}
     </div>
   );
 };
