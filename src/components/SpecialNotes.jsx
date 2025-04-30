@@ -7,16 +7,38 @@ import {
   orderBy,
   doc,
   deleteDoc,
+  getDoc,
 } from "firebase/firestore";
 import { db, auth } from "../firebase";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { createPartnerNotification } from "../utils/notifications";
 
 const SpecialNotes = () => {
   const [notes, setNotes] = useState([]);
   const [newNote, setNewNote] = useState("");
   const [isPrivate, setIsPrivate] = useState(false);
+  const [currentUser, setCurrentUser] = useState(null);
 
   useEffect(() => {
+    // Carregar informações do usuário atual e seu parceiro
+    const loadUserData = async () => {
+      if (!auth.currentUser) return;
+
+      try {
+        const userDoc = await getDoc(doc(db, "users", auth.currentUser.uid));
+        if (userDoc.exists()) {
+          setCurrentUser({
+            ...userDoc.data(),
+            uid: auth.currentUser.uid,
+          });
+        }
+      } catch (error) {
+        console.error("Erro ao carregar dados do usuário:", error);
+      }
+    };
+
+    loadUserData();
+
     const q = query(collection(db, "notes"), orderBy("createdAt", "desc"));
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const currentUserId = auth.currentUser?.uid;
@@ -43,13 +65,28 @@ const SpecialNotes = () => {
     if (!newNote.trim()) return;
 
     try {
-      await addDoc(collection(db, "notes"), {
+      const newNoteRef = await addDoc(collection(db, "notes"), {
         text: newNote,
         isPrivate: isPrivate,
         authorId: auth.currentUser?.uid,
         authorName: auth.currentUser?.displayName || "Anônimo",
         createdAt: new Date(),
       });
+
+      // Enviar notificação para o parceiro
+      if (currentUser?.relationship?.partnerId) {
+        await createPartnerNotification(
+          currentUser.relationship.partnerId,
+          auth.currentUser.uid,
+          currentUser.displayName ||
+            auth.currentUser.displayName ||
+            "Seu parceiro(a)",
+          "note",
+          `adicionou uma nova ${isPrivate ? "nota privada" : "nota"}`,
+          newNoteRef.id
+        );
+      }
+
       setNewNote("");
       setIsPrivate(false);
     } catch (error) {
@@ -69,7 +106,7 @@ const SpecialNotes = () => {
     <div className="container mx-auto">
       <div className="bg-white rounded-xl p-8 shadow-md border border-gray-200">
         <h2 className="text-3xl font-bold mb-8 text-gray-800 flex items-center">
-          <div className="bg-primary text-pink-300 p-3 rounded-lg shadow-md mr-4">
+          <div className="bg-primary text-pink-300 p-3 rounded-lg mr-4">
             <FontAwesomeIcon icon="envelope" />
           </div>
           <span className="text-primary">Nossas Notas Especiais</span>

@@ -7,16 +7,37 @@ import {
   doc,
   updateDoc,
   deleteDoc,
+  getDoc,
 } from "firebase/firestore";
-import { db } from "../firebase";
+import { db, auth } from "../firebase";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { createPartnerNotification } from "../utils/notifications";
 
 const DreamsWishes = () => {
   const [dreams, setDreams] = useState([]);
   const [newDream, setNewDream] = useState("");
   const [dreamType, setDreamType] = useState("meta"); // meta ou sonho
+  const [currentUser, setCurrentUser] = useState(null);
 
   useEffect(() => {
+    const loadUserData = async () => {
+      if (!auth.currentUser) return;
+
+      try {
+        const userDoc = await getDoc(doc(db, "users", auth.currentUser.uid));
+        if (userDoc.exists()) {
+          setCurrentUser({
+            ...userDoc.data(),
+            uid: auth.currentUser.uid,
+          });
+        }
+      } catch (error) {
+        console.error("Erro ao carregar dados do usuário:", error);
+      }
+    };
+
+    loadUserData();
+
     const q = query(collection(db, "dreams"));
     const unsubscribe = onSnapshot(q, (snapshot) => {
       setDreams(
@@ -34,12 +55,30 @@ const DreamsWishes = () => {
     if (!newDream.trim()) return;
 
     try {
-      await addDoc(collection(db, "dreams"), {
+      const dreamRef = await addDoc(collection(db, "dreams"), {
         text: newDream,
         type: dreamType,
         completed: false,
         createdAt: new Date(),
+        authorId: auth.currentUser.uid,
       });
+
+      // Notificar o parceiro
+      if (currentUser?.relationship?.partnerId) {
+        await createPartnerNotification(
+          currentUser.relationship.partnerId,
+          auth.currentUser.uid,
+          currentUser.displayName ||
+            auth.currentUser.displayName ||
+            "Seu parceiro(a)",
+          dreamType === "meta" ? "goal" : "dream",
+          `adicionou ${
+            dreamType === "meta" ? "uma nova meta" : "um novo sonho"
+          }: ${newDream}`,
+          dreamRef.id
+        );
+      }
+
       setNewDream("");
     } catch (error) {
       console.error("Erro ao adicionar sonho/meta:", error);
@@ -69,7 +108,7 @@ const DreamsWishes = () => {
     <div className="container mx-auto">
       <div className="bg-white rounded-xl p-8 shadow-md border border-gray-200">
         <h2 className="text-3xl font-bold mb-8 text-gray-800 flex items-center">
-          <div className="bg-primary text-pink-300 p-3 rounded-lg shadow-md mr-4">
+          <div className="bg-primary text-pink-300 p-3 rounded-lg mr-4">
             <FontAwesomeIcon icon="star" />
           </div>
           <span className="text-primary">Nossos Sonhos e Metas</span>

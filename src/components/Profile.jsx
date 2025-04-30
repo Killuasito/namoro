@@ -158,8 +158,8 @@ const Profile = () => {
     <Layout>
       <div className="container mx-auto px-4">
         <div className="bg-white rounded-xl p-4 sm:p-6 shadow-md border border-gray-200">
-          <h2 className="text-xl sm:text-2xl font-bold mb-4 sm:mb-6 text-gray-800 flex items-center">
-            <FontAwesomeIcon icon="user" className="mr-3 text-primary" />
+          <h2 className="text-xl sm:text-2xl font-bold mb-4 sm:mb-6 text-pink-300 flex items-center">
+            <FontAwesomeIcon icon="user" className="mr-4 ml-4 text-pink-300" />
             Meu Perfil
           </h2>
 

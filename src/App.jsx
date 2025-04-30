@@ -85,6 +85,13 @@ import {
   faCheckCircle,
   faExclamationTriangle,
   faArrowLeft,
+  // Novos ícones para notificações
+  faBell,
+  faBellSlash,
+  // Novos ícones adicionais
+  faAngleLeft,
+  faAngleRight,
+  faFileDownload, // Adicionar ícone de download de arquivo
 } from "@fortawesome/free-solid-svg-icons";
 
 // Import brand icons separately from the free-brands-svg-icons package
@@ -160,7 +167,14 @@ library.add(
   faTrophy,
   faCheckCircle,
   faExclamationTriangle,
-  faArrowLeft
+  faArrowLeft,
+  // Adicionar novos ícones
+  faBell,
+  faBellSlash,
+  // Adicionar novos ícones adicionais
+  faAngleLeft,
+  faAngleRight,
+  faFileDownload // Adicionar ícone de download de arquivo
 );
 
 // CSS do Tailwind

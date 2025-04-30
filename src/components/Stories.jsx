@@ -135,6 +135,46 @@ const Stories = () => {
     }
   };
 
+  const exportToTxt = (story) => {
+    try {
+      const createdAt = story.createdAt?.toDate
+        ? story.createdAt.toDate().toLocaleDateString("pt-BR")
+        : new Date(story.createdAt).toLocaleDateString("pt-BR");
+
+      const content = `TÍTULO: ${story.title}
+AUTOR: ${story.authorName || "Anônimo"}
+DATA: ${createdAt}
+------------------------------------------------------
+
+${story.content}
+
+------------------------------------------------------
+Exportado de "Nosso Espaço" em ${new Date().toLocaleDateString("pt-BR")}`;
+
+      const blob = new Blob([content], { type: "text/plain;charset=utf-8" });
+
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+
+      link.href = url;
+      link.download = `${story.title.replace(
+        /[^\w\s]/gi,
+        ""
+      )}-${createdAt.replace(/\//g, "-")}.txt`;
+
+      document.body.appendChild(link);
+      link.click();
+
+      setTimeout(() => {
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+      }, 100);
+    } catch (error) {
+      console.error("Erro ao exportar história:", error);
+      alert("Ocorreu um erro ao exportar a história.");
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -147,7 +187,7 @@ const Stories = () => {
     <div className="container mx-auto">
       <div className="bg-white rounded-xl p-8 shadow-md border border-gray-200">
         <h2 className="text-3xl font-bold mb-8 text-gray-800 flex items-center">
-          <div className="bg-primary text-pink-300 p-3 rounded-lg shadow-md mr-4">
+          <div className="bg-primary text-pink-300 p-3 rounded-lg mr-4">
             <FontAwesomeIcon icon="book" />
           </div>
           <span className="text-primary">Nossas Histórias</span>
@@ -238,6 +278,13 @@ const Stories = () => {
                     {story.title}
                   </h4>
                   <div className="flex gap-2">
+                    <button
+                      onClick={() => exportToTxt(story)}
+                      className="text-gray-400 hover:text-green-500 p-1"
+                      title="Exportar história para TXT"
+                    >
+                      <FontAwesomeIcon icon="file-download" />
+                    </button>
                     {story.authorId === auth.currentUser?.uid && (
                       <>
                         <button

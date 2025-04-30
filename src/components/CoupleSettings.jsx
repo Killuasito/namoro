@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from "react";
-import { doc, getDoc, updateDoc } from "firebase/firestore";
+import { doc, getDoc, updateDoc, setDoc } from "firebase/firestore";
 import { db, auth } from "../firebase";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { createPartnerNotification } from "../utils/notifications";
 
 const CoupleSettings = () => {
   const [partner, setPartner] = useState(null);
@@ -113,9 +114,33 @@ const CoupleSettings = () => {
       const userId = auth.currentUser.uid;
       const partnerId = partner.uid;
 
+      // Verificar se o documento do casal existe
       const coupleDocRef = doc(db, "couples", `${userId}_${partnerId}`);
+      const altCoupleDocRef = doc(db, "couples", `${partnerId}_${userId}`);
 
-      await updateDoc(coupleDocRef, {
+      // Verificar se algum dos documentos possíveis existe
+      const coupleDoc = await getDoc(coupleDocRef);
+      const altCoupleDoc = await getDoc(altCoupleDocRef);
+
+      // Selecionar o documento que existe ou criar um novo
+      let finalCoupleDocRef;
+
+      if (coupleDoc.exists()) {
+        finalCoupleDocRef = coupleDocRef;
+      } else if (altCoupleDoc.exists()) {
+        finalCoupleDocRef = altCoupleDocRef;
+      } else {
+        // Criar um novo documento se nenhum existir
+        finalCoupleDocRef = coupleDocRef;
+        await setDoc(finalCoupleDocRef, {
+          userIds: [userId, partnerId],
+          createdAt: new Date(),
+          nicknames: {},
+        });
+      }
+
+      // Atualizar o documento
+      await updateDoc(finalCoupleDocRef, {
         anniversary: coupleData.anniversary,
         nicknames: {
           [userId]: coupleData.nickname,
@@ -124,6 +149,7 @@ const CoupleSettings = () => {
         updatedAt: new Date(),
       });
 
+      // Atualizar os documentos de usuário
       const userRef = doc(db, "users", userId);
       await updateDoc(userRef, {
         "relationship.anniversary": coupleData.anniversary,
@@ -134,10 +160,22 @@ const CoupleSettings = () => {
         "relationship.anniversary": coupleData.anniversary,
       });
 
+      // Notificar o parceiro sobre as alterações nas configurações do casal
+      await createPartnerNotification(
+        partnerId,
+        userId,
+        currentUser?.displayName ||
+          auth.currentUser.displayName ||
+          "Seu parceiro(a)",
+        "settings",
+        "atualizou as configurações do casal",
+        null
+      );
+
       alert("Configurações do casal atualizadas com sucesso!");
     } catch (error) {
       console.error("Erro ao salvar configurações:", error);
-      alert("Ocorreu um erro ao salvar as configurações.");
+      alert("Ocorreu um erro ao salvar as configurações: " + error.message);
     }
   };
 
@@ -153,8 +191,8 @@ const CoupleSettings = () => {
     return (
       <div className="container mx-auto">
         <div className="bg-white rounded-xl p-6 shadow-md border border-gray-200">
-          <h2 className="text-2xl font-bold mb-4 text-gray-800 flex items-center">
-            <FontAwesomeIcon icon="heart" className="mr-3 text-primary" />
+          <h2 className="text-2xl font-bold mb-4 text-pink-300 flex items-center">
+            <FontAwesomeIcon icon="heart" className="mr-4 ml-4 text-pink-300" />
             Configurações do Casal
           </h2>
           <div className="p-6 bg-gray-50 rounded-lg border border-gray-200 text-center">
@@ -185,7 +223,6 @@ const CoupleSettings = () => {
           <FontAwesomeIcon icon="heart" className="mr-3 text-primary" />
           Configurações do Casal
         </h2>
-
         <div className="mb-6 p-4 bg-pink-50 rounded-lg">
           <div className="flex items-center space-x-4">
             <div
@@ -207,7 +244,6 @@ const CoupleSettings = () => {
             </div>
           </div>
         </div>
-
         <div className="mb-6 bg-gray-50 p-4 rounded-lg">
           <h3 className="text-lg font-medium mb-3 text-gray-700">
             Seus Ícones Personalizados
@@ -229,12 +265,10 @@ const CoupleSettings = () => {
                 (Personalizável no seu perfil)
               </p>
             </div>
-
             <FontAwesomeIcon
               icon="heart"
               className="text-pink-300 text-2xl mx-4"
             />
-
             <div className="flex flex-col items-center">
               <div
                 className={`w-16 h-16 ${
@@ -250,12 +284,12 @@ const CoupleSettings = () => {
             </div>
           </div>
         </div>
-
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="md:col-span-2">
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                <FontAwesomeIcon icon="calendar-heart" className="mr-2" />
+                <FontAwesomeIcon icon="heart" className="mr-1" />
+                <FontAwesomeIcon icon="calendar-alt" className="mr-2" />
                 Data do Aniversário de Relacionamento
               </label>
               <div className="relative">
@@ -271,7 +305,6 @@ const CoupleSettings = () => {
                 />
               </div>
             </div>
-
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 <FontAwesomeIcon icon="id-card" className="mr-2" />
@@ -286,7 +319,6 @@ const CoupleSettings = () => {
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary/50"
               />
             </div>
-
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 <FontAwesomeIcon icon="id-card" className="mr-2" />
@@ -302,7 +334,6 @@ const CoupleSettings = () => {
               />
             </div>
           </div>
-
           <div className="mt-8 flex justify-center">
             <button
               type="submit"

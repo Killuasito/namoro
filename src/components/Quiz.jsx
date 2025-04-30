@@ -14,6 +14,7 @@ import {
 } from "firebase/firestore";
 import { db, auth } from "../firebase";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { createPartnerNotification } from "../utils/notifications";
 
 const Quiz = () => {
   const [quizzes, setQuizzes] = useState([]);
@@ -175,7 +176,21 @@ Após criar o índice, recarregue a página.`);
         attempts: [],
       };
 
-      await addDoc(collection(db, "quizzes"), quizData);
+      const quizRef = await addDoc(collection(db, "quizzes"), quizData);
+
+      // Notificar o parceiro sobre o novo quiz
+      if (partner?.uid) {
+        await createPartnerNotification(
+          partner.uid,
+          auth.currentUser.uid,
+          currentUser?.displayName ||
+            auth.currentUser.displayName ||
+            "Seu parceiro(a)",
+          "quiz",
+          `criou um novo quiz: ${newQuiz.title}`,
+          quizRef.id
+        );
+      }
 
       // Resetar formulário
       setNewQuiz({
@@ -343,6 +358,23 @@ Após criar o índice, recarregue a página.`);
         lastCompletedAt: new Date(),
       });
 
+      // Notificar o criador do quiz que o parceiro respondeu
+      if (
+        selectedQuiz.authorId &&
+        selectedQuiz.authorId !== auth.currentUser.uid
+      ) {
+        await createPartnerNotification(
+          selectedQuiz.authorId,
+          auth.currentUser.uid,
+          currentUser?.displayName ||
+            auth.currentUser.displayName ||
+            "Seu parceiro(a)",
+          "quiz",
+          `respondeu ao seu quiz "${selectedQuiz.title}" com ${score} pontos!`,
+          selectedQuiz.id
+        );
+      }
+
       setFinalScore(score);
       setQuizCompleted(true);
       setAttempts(updatedAttempts);
@@ -399,7 +431,7 @@ Após criar o índice, recarregue a página.`);
     <div className="container mx-auto">
       <div className="bg-white rounded-xl p-8 shadow-md border border-gray-200">
         <h2 className="text-3xl font-bold mb-8 text-gray-800 flex items-center">
-          <div className="bg-primary text-pink-300 p-3 rounded-lg shadow-md mr-4">
+          <div className="bg-primary text-pink-300 p-3 rounded-lg mr-4">
             <FontAwesomeIcon icon="question-circle" />
           </div>
           <span className="text-primary">Quizzes para o Casal</span>
@@ -465,17 +497,18 @@ Após criar o índice, recarregue a página.`);
                   </div>
                 </div>
 
-                <div className="flex justify-center space-x-4">
+                {/* Aqui está o ajuste dos botões para mobile */}
+                <div className="flex flex-col sm:flex-row justify-center space-y-3 sm:space-y-0 sm:space-x-4">
                   <button
                     onClick={backToList}
-                    className="px-5 py-2 bg-gray-300 hover:bg-gray-400 text-gray-800 rounded-lg flex items-center gap-2 transition-colors"
+                    className="px-5 py-2 bg-gray-300 hover:bg-gray-400 text-gray-800 rounded-lg flex items-center justify-center gap-2 transition-colors"
                   >
                     <FontAwesomeIcon icon="arrow-left" />
                     Voltar para lista
                   </button>
                   <button
                     onClick={() => setShowCorrectAnswers(!showCorrectAnswers)}
-                    className="px-5 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg flex items-center gap-2 transition-colors"
+                    className="px-5 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg flex items-center justify-center gap-2 transition-colors"
                   >
                     <FontAwesomeIcon
                       icon={showCorrectAnswers ? "eye-slash" : "eye"}
@@ -484,7 +517,7 @@ Após criar o índice, recarregue a página.`);
                   </button>
                   <button
                     onClick={retryQuiz}
-                    className="px-5 py-2 bg-pink-500 hover:bg-pink-600 text-white rounded-lg flex items-center gap-2 transition-colors"
+                    className="px-5 py-2 bg-pink-500 hover:bg-pink-600 text-white rounded-lg flex items-center justify-center gap-2 transition-colors"
                   >
                     <FontAwesomeIcon icon="redo" />
                     Tentar Novamente
