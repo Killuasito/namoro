@@ -3,11 +3,19 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { addDoc, collection } from "firebase/firestore";
 import { db, auth } from "../../firebase";
 
-const GRID_SIZE = 20;
-const CELL_SIZE = 20;
+// Adjusted grid sizes for different screens
+const getGameDimensions = () => {
+  const isMobile = window.innerWidth < 768;
+  return {
+    GRID_SIZE: isMobile ? 15 : 20,
+    CELL_SIZE: isMobile ? 15 : 20,
+  };
+};
+
 const INITIAL_SPEED = 200;
 
 const SnakeGame = ({ onClose }) => {
+  const { GRID_SIZE, CELL_SIZE } = getGameDimensions();
   const [snake, setSnake] = useState([[10, 10]]);
   const [food, setFood] = useState([5, 5]);
   const [direction, setDirection] = useState("RIGHT");
@@ -23,7 +31,7 @@ const SnakeGame = ({ onClose }) => {
       Math.floor(Math.random() * GRID_SIZE),
     ];
     setFood(newFood);
-  }, []);
+  }, [GRID_SIZE]);
 
   const checkCollision = useCallback(
     (head) => {
@@ -46,7 +54,7 @@ const SnakeGame = ({ onClose }) => {
 
       return false;
     },
-    [snake]
+    [snake, GRID_SIZE]
   );
 
   const moveSnake = useCallback(() => {
@@ -201,7 +209,7 @@ const SnakeGame = ({ onClose }) => {
 
   return (
     <div className="fixed inset-0 backdrop-blur-lg flex items-center justify-center z-50">
-      <div className="bg-white p-6 rounded-xl shadow-lg">
+      <div className="bg-white p-4 sm:p-6 rounded-xl shadow-lg w-full max-w-[95vw] sm:max-w-none mx-4">
         <div className="flex justify-between items-center mb-4">
           <div>
             <h3 className="text-xl font-bold text-gray-800">Snake Game</h3>
@@ -218,7 +226,7 @@ const SnakeGame = ({ onClose }) => {
         </div>
 
         <div
-          className="relative touch-none"
+          className="relative touch-none mx-auto"
           onTouchStart={handleTouchStart}
           onTouchMove={handleTouchMove}
           style={{
