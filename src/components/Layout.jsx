@@ -48,6 +48,7 @@ const Layout = ({ children }) => {
     { name: "Quiz do Casal", path: "/quiz", icon: "question-circle" },
     { name: "Configurações do Casal", path: "/couple-settings", icon: "heart" },
     { name: "Perfil", path: "/profile", icon: "user" },
+    { name: "Jogos", path: "/games", icon: "gamepad" },
   ];
 
   // Função para verificar se está em dispositivo móvel

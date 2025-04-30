@@ -19,6 +19,7 @@ import SpecialNotes from "./components/SpecialNotes";
 import CoupleSettings from "./components/CoupleSettings";
 import HomePage from "./components/HomePage";
 import Quiz from "./components/Quiz"; // Nova importação
+import Games from "./components/Games"; // Nova importação
 
 // Add Font Awesome with expanded icon set
 import { library } from "@fortawesome/fontawesome-svg-core";
@@ -79,6 +80,7 @@ import {
   faSun,
   faBullseye,
   // Novos ícones para Quiz
+  faQuestion,
   faQuestionCircle,
   faClipboardList,
   faTrophy,
@@ -104,6 +106,12 @@ import {
   faWater, // Add water icon
   faLockOpen,
   faKey,
+  faBrain, // Adicionar ícone de cérebro
+  faFont,
+  faHeartBroken,
+  faHashtag,
+  faDragon,
+  faCircle,
 } from "@fortawesome/free-solid-svg-icons";
 
 // Import brand icons separately from the free-brands-svg-icons package
@@ -174,6 +182,7 @@ library.add(
   faSun,
   faBullseye,
   // Novos ícones para Quiz
+  faQuestion,
   faQuestionCircle,
   faClipboardList,
   faTrophy,
@@ -198,7 +207,13 @@ library.add(
   faFire,
   faWater, // Replace faSnowflake with faWater
   faLockOpen,
-  faKey
+  faKey,
+  faBrain, // Adicionar ícone de cérebro
+  faFont,
+  faHeartBroken,
+  faHashtag,
+  faDragon,
+  faCircle
 );
 
 // CSS do Tailwind
@@ -273,6 +288,14 @@ function App() {
               element={
                 <Layout>
                   <Quiz />
+                </Layout>
+              }
+            />
+            <Route
+              path="/games"
+              element={
+                <Layout>
+                  <Games />
                 </Layout>
               }
             />
