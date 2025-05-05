@@ -11,7 +11,7 @@ import {
   arrayUnion,
 } from "firebase/firestore";
 import { db } from "../firebase";
-import { getFCMToken } from "../firebase";
+import { requestNotificationPermission } from "../firebase"; // Change this line
 
 /**
  * Adiciona o token FCM do usuário ao Firestore
@@ -20,7 +20,7 @@ import { getFCMToken } from "../firebase";
  */
 export const saveUserFCMToken = async (userId) => {
   try {
-    const token = await getFCMToken();
+    const token = await requestNotificationPermission();
     if (token) {
       await updateDoc(doc(db, "users", userId), {
         fcmTokens: arrayUnion(token),

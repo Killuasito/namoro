@@ -5,6 +5,7 @@ import { auth, db } from "../firebase";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import Notifications from "./Notifications";
 import { getUnreadNotificationsCount } from "../utils/notifications";
+import { requestNotificationPermission } from "../firebase";
 
 const Layout = ({ children }) => {
   const location = useLocation();
@@ -19,6 +20,13 @@ const Layout = ({ children }) => {
     } catch (error) {
       console.error("Erro ao sair:", error);
     }
+  };
+
+  const handleNotificationsClick = async () => {
+    if (!notificationsOpen) {
+      await requestNotificationPermission();
+    }
+    setNotificationsOpen(!notificationsOpen);
   };
 
   // Carregar contagem de notificações não lidas
@@ -120,7 +128,7 @@ const Layout = ({ children }) => {
 
             {/* Notifications Button */}
             <button
-              onClick={() => setNotificationsOpen(!notificationsOpen)}
+              onClick={handleNotificationsClick}
               className={`px-3 py-3 rounded-md flex items-center transition-all duration-200 text-white hover:bg-white/20 relative ${
                 sidebarCollapsed ? "justify-center" : ""
               }`}
@@ -187,7 +195,7 @@ const Layout = ({ children }) => {
             {/* Botão do menu e notificações para mobile */}
             <div className="flex items-center space-x-2">
               <button
-                onClick={() => setNotificationsOpen(!notificationsOpen)}
+                onClick={handleNotificationsClick}
                 className="text-white relative p-2"
               >
                 <FontAwesomeIcon icon="bell" size="lg" />
