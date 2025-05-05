@@ -8,6 +8,8 @@ import {
   doc,
   deleteDoc,
   getDoc,
+  updateDoc,
+  arrayUnion,
 } from "firebase/firestore";
 import { db, auth } from "../firebase";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
@@ -18,6 +20,8 @@ const SpecialNotes = () => {
   const [newNote, setNewNote] = useState("");
   const [isPrivate, setIsPrivate] = useState(false);
   const [currentUser, setCurrentUser] = useState(null);
+  const [replyText, setReplyText] = useState("");
+  const [replyingTo, setReplyingTo] = useState(null);
 
   useEffect(() => {
     // Carregar informações do usuário atual e seu parceiro
@@ -99,6 +103,48 @@ const SpecialNotes = () => {
       await deleteDoc(doc(db, "notes", id));
     } catch (error) {
       console.error("Erro ao deletar nota:", error);
+    }
+  };
+
+  const handleReply = async (noteId) => {
+    if (!replyText.trim()) return;
+
+    try {
+      const newReply = {
+        text: replyText,
+        parentNoteId: noteId,
+        authorId: auth.currentUser?.uid,
+        authorName: auth.currentUser?.displayName || "Anônimo",
+        createdAt: new Date(),
+        isReply: true,
+        isPrivate: false, // herda a visibilidade da nota original
+      };
+
+      // Adicionar a resposta como uma atualização da nota original
+      const noteRef = doc(db, "notes", noteId);
+      await updateDoc(noteRef, {
+        replies: arrayUnion(newReply),
+      });
+
+      // Notificar o autor da nota original
+      const originalNote = notes.find((note) => note.id === noteId);
+      if (originalNote && originalNote.authorId !== auth.currentUser?.uid) {
+        await createPartnerNotification(
+          originalNote.authorId,
+          auth.currentUser.uid,
+          currentUser.displayName ||
+            auth.currentUser.displayName ||
+            "Seu parceiro(a)",
+          "note_reply",
+          "respondeu sua nota",
+          noteId
+        );
+      }
+
+      setReplyText("");
+      setReplyingTo(null);
+    } catch (error) {
+      console.error("Erro ao adicionar resposta:", error);
     }
   };
 
@@ -220,6 +266,63 @@ const SpecialNotes = () => {
                   </button>
                 )}
               </div>
+
+              {!note.isReply && (
+                <div className="mt-4 border-t border-gray-100 pt-4">
+                  {replyingTo === note.id ? (
+                    <div className="space-y-3">
+                      <textarea
+                        placeholder="Escreva sua resposta..."
+                        value={replyText}
+                        onChange={(e) => setReplyText(e.target.value)}
+                        className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-pink-200 focus:border-pink-300 transition-all text-sm"
+                        rows="2"
+                      />
+                      <div className="flex justify-end space-x-2">
+                        <button
+                          onClick={() => {
+                            setReplyingTo(null);
+                            setReplyText("");
+                          }}
+                          className="px-3 py-1 text-sm text-gray-600 hover:bg-gray-100 rounded-lg"
+                        >
+                          Cancelar
+                        </button>
+                        <button
+                          onClick={() => handleReply(note.id)}
+                          className="px-3 py-1 text-sm bg-pink-300 text-white rounded-lg hover:bg-pink-400"
+                        >
+                          Responder
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <button
+                      onClick={() => setReplyingTo(note.id)}
+                      className="text-pink-500 hover:text-pink-600 text-sm flex items-center gap-2"
+                    >
+                      <FontAwesomeIcon icon="reply" />
+                      Responder
+                    </button>
+                  )}
+
+                  {note.replies?.map((reply, index) => (
+                    <div
+                      key={index}
+                      className="ml-8 mt-4 p-4 bg-gray-50 rounded-lg border border-gray-100"
+                    >
+                      <p className="text-gray-700 text-sm">{reply.text}</p>
+                      <div className="mt-2 flex items-center text-xs text-gray-500">
+                        <span className="font-medium">{reply.authorName}</span>
+                        <span className="mx-2">•</span>
+                        <span>
+                          {reply.createdAt?.toDate().toLocaleString()}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           ))}
 

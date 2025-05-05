@@ -72,11 +72,36 @@ export const createPartnerNotification = async (
     const notificationRef = doc(db, "push_notifications", "queue");
     await addDoc(collection(db, "push_notifications"), {
       recipientId,
-      title: senderName,
-      body: message,
+      notification: {
+        title: senderName,
+        body: message,
+      },
       data: {
         type,
-        itemId,
+        itemId: itemId || "",
+        url: `/${type}s`, // Rota para onde a notificação deve levar
+        clickAction: "FLUTTER_NOTIFICATION_CLICK", // Para apps móveis
+      },
+      android: {
+        priority: "high",
+        notification: {
+          channelId: "default",
+          sound: true,
+          priority: "max",
+          visibility: "public",
+        },
+      },
+      apns: {
+        // Para iOS
+        headers: {
+          "apns-priority": "10",
+        },
+        payload: {
+          aps: {
+            sound: "default",
+            badge: 1,
+          },
+        },
       },
       createdAt: serverTimestamp(),
     });

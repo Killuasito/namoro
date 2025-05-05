@@ -112,6 +112,7 @@ import {
   faHashtag,
   faDragon,
   faCircle,
+  faReply, // Add reply icon
 } from "@fortawesome/free-solid-svg-icons";
 
 // Import brand icons separately from the free-brands-svg-icons package
@@ -213,7 +214,8 @@ library.add(
   faHeartBroken,
   faHashtag,
   faDragon,
-  faCircle
+  faCircle,
+  faReply // Add reply icon
 );
 
 // CSS do Tailwind

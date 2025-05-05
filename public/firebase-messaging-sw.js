@@ -1,8 +1,8 @@
 importScripts(
-  "https://www.gstatic.com/firebasejs/9.x.x/firebase-app-compat.js"
+  "https://www.gstatic.com/firebasejs/9.0.0/firebase-app-compat.js"
 );
 importScripts(
-  "https://www.gstatic.com/firebasejs/9.x.x/firebase-messaging-compat.js"
+  "https://www.gstatic.com/firebasejs/9.0.0/firebase-messaging-compat.js"
 );
 
 firebase.initializeApp({
@@ -19,14 +19,28 @@ const messaging = firebase.messaging();
 messaging.onBackgroundMessage((payload) => {
   const notificationOptions = {
     body: payload.notification.body,
-    icon: "/icon-192x192.png", // Adicione um ícone para sua aplicação
-    badge: "/badge-72x72.png", // Adicione um badge para sua aplicação
+    icon: "/icon-192x192.png",
+    badge: "/badge-72x72.png",
     data: payload.data,
     vibrate: [200, 100, 200],
+    tag: "notification",
+    renotify: true,
+    actions: [
+      { action: "open", title: "Abrir" },
+      { action: "close", title: "Fechar" },
+    ],
+    requireInteraction: true,
   };
 
-  self.registration.showNotification(
+  return self.registration.showNotification(
     payload.notification.title,
     notificationOptions
   );
+});
+
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+  if (event.action === "open") {
+    clients.openWindow("/");
+  }
 });
