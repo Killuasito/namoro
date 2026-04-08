@@ -4,8 +4,6 @@ import {
   addDoc,
   query,
   where,
-  orderBy,
-  onSnapshot,
   doc,
   deleteDoc,
   updateDoc,
@@ -49,7 +47,7 @@ const Quiz = () => {
   const [quizCompleted, setQuizCompleted] = useState(false);
   const [finalScore, setFinalScore] = useState(0);
   const [showCorrectAnswers, setShowCorrectAnswers] = useState(false);
-  const [attempts, setAttempts] = useState([]); // Para armazenar múltiplas tentativas
+  const [setAttempts] = useState([]); // Para armazenar múltiplas tentativas
 
   useEffect(() => {
     const loadData = async () => {

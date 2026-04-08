@@ -7,6 +7,7 @@ import {
 } from "react-router-dom";
 import { onAuthStateChanged } from "firebase/auth";
 import { auth } from "./firebase";
+import { saveUserFCMToken } from "./utils/notifications";
 
 // Componentes
 import Login from "./components/Login";
@@ -229,6 +230,10 @@ function App() {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       setUser(user);
       setLoading(false);
+      // Salvar token FCM sempre que o usuário logar
+      if (user) {
+        saveUserFCMToken(user.uid);
+      }
     });
 
     return () => unsubscribe();

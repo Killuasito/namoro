@@ -1,8 +1,8 @@
 importScripts(
-  "https://www.gstatic.com/firebasejs/9.0.0/firebase-app-compat.js"
+  "https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"
 );
 importScripts(
-  "https://www.gstatic.com/firebasejs/9.0.0/firebase-messaging-compat.js"
+  "https://www.gstatic.com/firebasejs/10.12.0/firebase-messaging-compat.js"
 );
 
 firebase.initializeApp({
@@ -40,7 +40,25 @@ messaging.onBackgroundMessage((payload) => {
 
 self.addEventListener("notificationclick", (event) => {
   event.notification.close();
-  if (event.action === "open") {
-    clients.openWindow("/");
-  }
+
+  const url = event.notification.data?.url || "/";
+
+  if (event.action === "close") return;
+
+  event.waitUntil(
+    clients
+      .matchAll({ type: "window", includeUncontrolled: true })
+      .then((clientList) => {
+        // Se já tem uma aba aberta, focar nela e navegar
+        for (const client of clientList) {
+          if ("focus" in client) {
+            client.focus();
+            client.navigate(url);
+            return;
+          }
+        }
+        // Caso contrário, abrir nova aba
+        return clients.openWindow(url);
+      })
+  );
 });

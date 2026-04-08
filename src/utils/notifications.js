@@ -9,9 +9,10 @@ import {
   updateDoc,
   doc,
   arrayUnion,
+  onSnapshot,
 } from "firebase/firestore";
 import { db } from "../firebase";
-import { requestNotificationPermission } from "../firebase"; // Change this line
+import { requestNotificationPermission } from "../firebase";
 
 /**
  * Adiciona o token FCM do usuário ao Firestore
@@ -50,11 +51,11 @@ export const createPartnerNotification = async (
   message,
   itemId = null
 ) => {
-  if (!recipientId) return; // Não envia notificação se não houver parceiro vinculado
+  if (!recipientId) return;
 
   try {
-    // Criar notificação no Firestore
-    const notificationData = {
+    // 1. Criar notificação no Firestore (in-app em tempo real)
+    await addDoc(collection(db, "notifications"), {
       recipientId,
       senderId,
       senderName,
@@ -63,52 +64,26 @@ export const createPartnerNotification = async (
       itemId,
       read: false,
       createdAt: serverTimestamp(),
-    };
-
-    await addDoc(collection(db, "notifications"), notificationData);
-
-    // Enviar notificação push via Cloud Function
-    // Isso requer uma Cloud Function configurada no Firebase
-    const notificationRef = doc(db, "push_notifications", "queue");
-    await addDoc(collection(db, "push_notifications"), {
-      recipientId,
-      notification: {
-        title: senderName,
-        body: message,
-      },
-      data: {
-        type,
-        itemId: itemId || "",
-        url: `/${type}s`, // Rota para onde a notificação deve levar
-        clickAction: "FLUTTER_NOTIFICATION_CLICK", // Para apps móveis
-      },
-      android: {
-        priority: "high",
-        notification: {
-          channelId: "default",
-          sound: true,
-          priority: "max",
-          visibility: "public",
-        },
-      },
-      apns: {
-        // Para iOS
-        headers: {
-          "apns-priority": "10",
-        },
-        payload: {
-          aps: {
-            sound: "default",
-            badge: 1,
-          },
-        },
-      },
-      createdAt: serverTimestamp(),
     });
 
-    console.log("Notificação enviada para o parceiro");
+    // 2. Disparar push notification via Vercel API (best-effort)
+    try {
+      await fetch("/api/send-notification", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          recipientId,
+          title: senderName,
+          body: message,
+          type,
+          itemId: itemId || "",
+        }),
+      });
+    } catch (pushError) {
+      console.warn("Push notification não enviado:", pushError);
+    }
   } catch (error) {
-    console.error("Erro ao enviar notificação:", error);
+    console.error("Erro ao criar notificação:", error);
   }
 };
 
@@ -185,4 +160,71 @@ export const getNotifications = async (userId) => {
     console.error("Erro ao obter notificações:", error);
     return [];
   }
+};
+
+/**
+ * Assina em tempo real as notificações de um usuário via onSnapshot
+ * Retorna a função de unsubscribe para limpeza no useEffect.
+ */
+export const subscribeToNotifications = (userId, callback) => {
+  if (!userId) return () => {};
+
+  const q = query(
+    collection(db, "notifications"),
+    where("recipientId", "==", userId),
+    orderBy("createdAt", "desc")
+  );
+
+  return onSnapshot(
+    q,
+    (snapshot) => {
+      const notifications = snapshot.docs.map((d) => ({
+        id: d.id,
+        ...d.data(),
+        createdAt: d.data().createdAt?.toDate() || new Date(),
+      }));
+      callback(notifications);
+    },
+    (error) => {
+      // Índice composto não criado ainda — fallback sem orderBy
+      console.warn("onSnapshot com orderBy falhou, usando fallback:", error);
+      const qFallback = query(
+        collection(db, "notifications"),
+        where("recipientId", "==", userId)
+      );
+      onSnapshot(qFallback, (snapshot) => {
+        const notifications = snapshot.docs
+          .map((d) => ({
+            id: d.id,
+            ...d.data(),
+            createdAt: d.data().createdAt?.toDate() || new Date(),
+          }))
+          .sort((a, b) => b.createdAt - a.createdAt);
+        callback(notifications);
+      });
+    }
+  );
+};
+
+/**
+ * Assina em tempo real a contagem de notificações não lidas
+ * Retorna a função de unsubscribe para limpeza no useEffect.
+ */
+export const subscribeToUnreadCount = (userId, callback) => {
+  if (!userId) return () => {};
+
+  const q = query(
+    collection(db, "notifications"),
+    where("recipientId", "==", userId),
+    where("read", "==", false)
+  );
+
+  return onSnapshot(
+    q,
+    (snapshot) => callback(snapshot.size),
+    (error) => {
+      console.warn("Erro ao assinar contagem não lida:", error);
+      callback(0);
+    }
+  );
 };

@@ -3,7 +3,7 @@ import { updateDoc, doc } from "firebase/firestore";
 import { db, auth } from "../firebase";
 import { Link } from "react-router-dom";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { getNotifications } from "../utils/notifications";
+import { subscribeToNotifications } from "../utils/notifications";
 
 const Notifications = ({ onClose }) => {
   const [notifications, setNotifications] = useState([]);
@@ -11,28 +11,19 @@ const Notifications = ({ onClose }) => {
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    const fetchNotifications = async () => {
-      if (!auth.currentUser) return;
+    if (!auth.currentUser) return;
 
-      try {
-        setLoading(true);
-        const notificationData = await getNotifications(auth.currentUser.uid);
-        setNotifications(notificationData);
+    setLoading(true);
+    const unsubscribe = subscribeToNotifications(
+      auth.currentUser.uid,
+      (data) => {
+        setNotifications(data);
         setError(null);
-      } catch (err) {
-        console.error("Erro ao carregar notificações:", err);
-        setError(
-          "Não foi possível carregar as notificações. Tente novamente mais tarde."
-        );
-      } finally {
         setLoading(false);
       }
-    };
+    );
 
-    fetchNotifications();
-    const interval = setInterval(fetchNotifications, 30000);
-
-    return () => clearInterval(interval);
+    return unsubscribe;
   }, []);
 
   const markAsRead = async (notificationId) => {
@@ -88,7 +79,7 @@ const Notifications = ({ onClose }) => {
     }
   };
 
-  const getNotificationLink = (type, itemId) => {
+  const getNotificationLink = (type) => {
     switch (type) {
       case "note":
         return "/notes";

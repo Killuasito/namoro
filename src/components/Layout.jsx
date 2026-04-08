@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { signOut } from "firebase/auth";
-import { auth, db } from "../firebase";
+import { auth } from "../firebase";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import Notifications from "./Notifications";
-import { getUnreadNotificationsCount } from "../utils/notifications";
+import { subscribeToUnreadCount } from "../utils/notifications";
 import { requestNotificationPermission } from "../firebase";
 
 const Layout = ({ children }) => {
@@ -29,23 +29,14 @@ const Layout = ({ children }) => {
     setNotificationsOpen(!notificationsOpen);
   };
 
-  // Carregar contagem de notificações não lidas
+  // Assina em tempo real a contagem de notificações não lidas
   useEffect(() => {
     if (!auth.currentUser) return;
-
-    // Função para carregar contagem de forma segura
-    const fetchUnreadCount = async () => {
-      const count = await getUnreadNotificationsCount(auth.currentUser.uid);
-      setUnreadCount(count);
-    };
-
-    // Carregar na inicialização
-    fetchUnreadCount();
-
-    // Atualizar periodicamente (a cada 15 segundos)
-    const interval = setInterval(fetchUnreadCount, 15000);
-
-    return () => clearInterval(interval);
+    const unsubscribe = subscribeToUnreadCount(
+      auth.currentUser.uid,
+      setUnreadCount
+    );
+    return unsubscribe;
   }, []);
 
   const navigation = [
@@ -64,27 +55,27 @@ const Layout = ({ children }) => {
     return window.innerWidth < 768;
   };
 
+  const sidebarWidth = sidebarCollapsed ? "5rem" : "16rem";
+
   return (
-    <div className="min-h-screen flex flex-col md:flex-row bg-gray-50">
+    <div className="min-h-screen flex bg-gray-50">
       {/* Sidebar para desktop */}
-      <div
-        className={`hidden md:flex flex-col fixed h-full bg-pink-300 text-white shadow-xl transition-all duration-300 z-20 ${
-          sidebarCollapsed ? "w-20" : "w-64"
-        }`}
+      <aside
+        style={{ width: sidebarWidth }}
+        className="hidden md:flex flex-col fixed top-0 left-0 h-full bg-pink-300 text-white shadow-xl transition-[width] duration-300 z-20 shrink-0"
       >
         {/* Logo/Título */}
-        <div className="p-5 flex items-center justify-center border-b border-white/20">
+        <div className="p-4 flex items-center border-b border-white/20 min-h-[64px]">
           <Link
             to="/"
-            className={`font-bold flex items-center transition-transform duration-300 hover:scale-105 ${
-              sidebarCollapsed ? "justify-center" : ""
-            }`}
+            className="flex items-center gap-2 font-bold hover:opacity-80 transition-opacity overflow-hidden"
+            title="Nosso Espaço"
           >
-            <div className="bg-white/20 p-2 rounded-full">
-              <FontAwesomeIcon icon="heart" className="text-white" />
+            <div className="bg-white/20 p-2 rounded-full shrink-0">
+              <FontAwesomeIcon icon="heart" className="text-white w-4 h-4" />
             </div>
             {!sidebarCollapsed && (
-              <span className="font-cursive tracking-wider ml-2 text-xl">
+              <span className="font-cursive tracking-wider text-lg whitespace-nowrap overflow-hidden">
                 Nosso Espaço
               </span>
             )}
@@ -93,7 +84,8 @@ const Layout = ({ children }) => {
           {/* Toggle button */}
           <button
             onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-            className="ml-auto text-white hover:bg-white/20 p-2 rounded-full"
+            className="ml-auto shrink-0 text-white hover:bg-white/20 p-2 rounded-full transition-colors"
+            title={sidebarCollapsed ? "Expandir menu" : "Recolher menu"}
           >
             <FontAwesomeIcon
               icon={sidebarCollapsed ? "angle-right" : "angle-left"}
@@ -102,81 +94,74 @@ const Layout = ({ children }) => {
         </div>
 
         {/* Navigation Links */}
-        <div className="flex-grow py-6 overflow-y-auto scrollbar-thin">
-          <nav className="space-y-1 px-3">
-            {navigation.map((item) => (
-              <Link
-                key={item.path}
-                to={item.path}
-                className={`px-3 py-3 rounded-md flex items-center transition-all duration-200 ${
-                  location.pathname === item.path
-                    ? "bg-white text-pink-300 font-medium shadow-md"
-                    : "text-white hover:bg-white/20"
-                } ${sidebarCollapsed ? "justify-center" : ""}`}
-                title={sidebarCollapsed ? item.name : ""}
-              >
-                <div
-                  className={`${
-                    location.pathname === item.path ? "bg-primary/10" : ""
-                  } p-2 rounded-full ${!sidebarCollapsed ? "mr-3" : ""}`}
-                >
-                  <FontAwesomeIcon icon={item.icon} />
-                </div>
-                {!sidebarCollapsed && <span>{item.name}</span>}
-              </Link>
-            ))}
-
-            {/* Notifications Button */}
-            <button
-              onClick={handleNotificationsClick}
-              className={`px-3 py-3 rounded-md flex items-center transition-all duration-200 text-white hover:bg-white/20 relative ${
-                sidebarCollapsed ? "justify-center" : ""
-              }`}
-              title={sidebarCollapsed ? "Notificações" : ""}
+        <nav className="flex-grow py-4 overflow-y-auto space-y-1 px-2">
+          {navigation.map((item) => (
+            <Link
+              key={item.path}
+              to={item.path}
+              title={item.name}
+              className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200 ${
+                location.pathname === item.path
+                  ? "bg-white text-pink-400 font-semibold shadow"
+                  : "text-white hover:bg-white/20"
+              } ${sidebarCollapsed ? "justify-center" : ""}`}
             >
-              <div className="p-2 rounded-full relative">
-                <FontAwesomeIcon icon="bell" />
-                {unreadCount > 0 && (
-                  <span className="absolute -top-1 -right-1 bg-red-500 text-xs text-white rounded-full h-4 w-4 flex items-center justify-center">
-                    {unreadCount > 9 ? "9+" : unreadCount}
-                  </span>
-                )}
-              </div>
-              {!sidebarCollapsed && <span className="ml-3">Notificações</span>}
-            </button>
+              <FontAwesomeIcon icon={item.icon} className="w-4 h-4 shrink-0" />
+              {!sidebarCollapsed && (
+                <span className="text-sm whitespace-nowrap overflow-hidden">
+                  {item.name}
+                </span>
+              )}
+            </Link>
+          ))}
 
-            {/* Sign Out Button */}
-            <button
-              onClick={handleSignOut}
-              className={`px-3 py-3 rounded-md flex items-center transition-all duration-200 text-white hover:bg-white/20 mt-4 ${
-                sidebarCollapsed ? "justify-center" : ""
-              }`}
-              title={sidebarCollapsed ? "Sair" : ""}
-            >
-              <div className="p-2 rounded-full">
-                <FontAwesomeIcon icon="sign-out-alt" />
-              </div>
-              {!sidebarCollapsed && <span className="ml-3">Sair</span>}
-            </button>
-          </nav>
-        </div>
+          {/* Notifications Button */}
+          <button
+            onClick={handleNotificationsClick}
+            title="Notificações"
+            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200 text-white hover:bg-white/20 ${
+              sidebarCollapsed ? "justify-center" : ""
+            }`}
+          >
+            <span className="relative shrink-0">
+              <FontAwesomeIcon icon="bell" className="w-4 h-4" />
+              {unreadCount > 0 && (
+                <span className="absolute -top-1.5 -right-1.5 bg-red-500 text-[10px] text-white rounded-full h-4 w-4 flex items-center justify-center font-bold">
+                  {unreadCount > 9 ? "9+" : unreadCount}
+                </span>
+              )}
+            </span>
+            {!sidebarCollapsed && (
+              <span className="text-sm whitespace-nowrap">Notificações</span>
+            )}
+          </button>
+
+          {/* Sign Out Button */}
+          <button
+            onClick={handleSignOut}
+            title="Sair"
+            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200 text-white hover:bg-white/20 mt-2 ${
+              sidebarCollapsed ? "justify-center" : ""
+            }`}
+          >
+            <FontAwesomeIcon icon="sign-out-alt" className="w-4 h-4 shrink-0" />
+            {!sidebarCollapsed && (
+              <span className="text-sm whitespace-nowrap">Sair</span>
+            )}
+          </button>
+        </nav>
 
         {/* Footer info */}
-        <div className="p-4 border-t border-white/20 text-center text-white/90 text-xs">
-          {!sidebarCollapsed && (
-            <>
-              <p className="font-cursive mb-1">Nosso Espaço Especial</p>
-              <p className="flex justify-center items-center">
-                <FontAwesomeIcon
-                  icon="heart"
-                  className="mr-1 text-red-800 animate-pulse"
-                />
-                {new Date().getFullYear()}
-              </p>
-            </>
-          )}
-        </div>
-      </div>
+        {!sidebarCollapsed && (
+          <div className="p-4 border-t border-white/20 text-center text-white/80 text-xs">
+            <p className="font-cursive mb-1">Nosso Espaço Especial</p>
+            <p className="flex justify-center items-center gap-1">
+              <FontAwesomeIcon icon="heart" className="text-red-800 animate-pulse" />
+              {new Date().getFullYear()}
+            </p>
+          </div>
+        )}
+      </aside>
 
       {/* Mobile Header */}
       <header className="bg-pink-300 shadow-lg relative z-20 md:hidden">
@@ -223,13 +208,10 @@ const Layout = ({ children }) => {
       {/* Dropdown de notificações */}
       {notificationsOpen && (
         <div
-          className={`absolute ${
-            isMobile()
-              ? "right-4 top-16"
-              : sidebarCollapsed
-              ? "left-20"
-              : "left-64"
-          } z-30 md:top-4`}
+          style={{ left: isMobile() ? undefined : sidebarWidth }}
+          className={`fixed z-30 ${
+            isMobile() ? "right-4 top-[72px]" : "top-4"
+          }`}
         >
           <Notifications onClose={() => setNotificationsOpen(false)} />
         </div>
@@ -243,7 +225,7 @@ const Layout = ({ children }) => {
               <Link
                 key={item.path}
                 to={item.path}
-                className={`block px-4 py-3 rounded-md flex items-center transition-all duration-200 ${
+                className={`block px-4 py-3 rounded-md items-center transition-all duration-200 ${
                   location.pathname === item.path
                     ? "bg-gradient-to-r from-primary/10 to-secondary/10 text-primary font-medium border-l-4 border-pink-300"
                     : "hover:bg-gray-50 text-gray-700 hover:translate-x-1"
@@ -280,15 +262,24 @@ const Layout = ({ children }) => {
 
       {/* Main Content */}
       <main
-        className={`flex-grow md:ml-${
-          sidebarCollapsed ? "20" : "64"
-        } py-8 px-4 transition-all duration-300`}
+        style={{ marginLeft: sidebarWidth }}
+        className="hidden md:block flex-grow min-w-0 py-8 px-6 transition-[margin] duration-300"
         onClick={() => {
           if (notificationsOpen) setNotificationsOpen(false);
-          if (isMobile() && isMobileMenuOpen) setIsMobileMenuOpen(false);
         }}
       >
-        <div className="container mx-auto">{children}</div>
+        <div className="max-w-5xl mx-auto">{children}</div>
+      </main>
+
+      {/* Mobile main content (sem margin, sem sidebar) */}
+      <main
+        className="md:hidden flex-grow min-w-0 py-6 px-4"
+        onClick={() => {
+          if (notificationsOpen) setNotificationsOpen(false);
+          if (isMobileMenuOpen) setIsMobileMenuOpen(false);
+        }}
+      >
+        <div className="max-w-5xl mx-auto">{children}</div>
       </main>
 
       {/* Footer mobile */}

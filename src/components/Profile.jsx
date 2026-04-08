@@ -177,6 +177,7 @@ const Profile = () => {
         newPassword: "",
         confirmPassword: "",
       });
+    // eslint-disable-next-line no-unused-vars
     } catch (error) {
       setPasswordError("Erro ao alterar senha. Verifique sua senha atual.");
     }
