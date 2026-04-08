@@ -164,103 +164,137 @@ const Layout = ({ children }) => {
       </aside>
 
       {/* Mobile Header */}
-      <header className="bg-pink-300 shadow-lg relative z-20 md:hidden">
-        <div className="container mx-auto px-4 relative">
-          <div className="flex justify-between items-center py-4">
-            <Link
-              to="/"
-              className="font-bold text-xl text-white flex items-center transition-transform duration-300 hover:scale-105"
-            >
-              <div className="bg-white/20 p-2 rounded-full mr-2">
-                <FontAwesomeIcon icon="heart" className="text-white" />
-              </div>
-              <span className="font-cursive tracking-wider">Nosso Espaço</span>
-            </Link>
+      <header className="bg-pink-300 shadow-lg fixed top-0 inset-x-0 z-20 md:hidden h-16 flex items-center px-4">
+        <button
+          className="text-white bg-white/20 w-10 h-10 flex items-center justify-center rounded-full focus:outline-none"
+          onClick={() => setIsMobileMenuOpen(true)}
+          aria-label="Abrir menu"
+        >
+          <FontAwesomeIcon icon="bars" />
+        </button>
 
-            {/* Botão do menu e notificações para mobile */}
-            <div className="flex items-center space-x-2">
-              <button
-                onClick={handleNotificationsClick}
-                className="text-white relative p-2"
-              >
-                <FontAwesomeIcon icon="bell" size="lg" />
-                {unreadCount > 0 && (
-                  <span className="absolute top-0 right-0 transform translate-x-0 -translate-y-1 bg-red-500 text-xs text-white rounded-full h-4 w-4 flex items-center justify-center">
-                    {unreadCount > 9 ? "9+" : unreadCount}
-                  </span>
-                )}
-              </button>
-
-              <button
-                className="text-white bg-white/20 w-10 h-10 flex items-center justify-center rounded-full focus:outline-none focus:ring-2 focus:ring-white/50"
-                onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-              >
-                <FontAwesomeIcon
-                  icon={isMobileMenuOpen ? "times" : "bars"}
-                  size="lg"
-                />
-              </button>
-            </div>
+        <Link
+          to="/"
+          className="flex-1 flex items-center justify-center gap-2 font-bold text-white"
+        >
+          <div className="bg-white/20 p-1.5 rounded-full">
+            <FontAwesomeIcon icon="heart" />
           </div>
-        </div>
+          <span className="font-cursive tracking-wider text-lg">Nosso Espaço</span>
+        </Link>
+
+        <button
+          onClick={handleNotificationsClick}
+          className="text-white relative w-10 h-10 flex items-center justify-center"
+          aria-label="Notificações"
+        >
+          <FontAwesomeIcon icon="bell" />
+          {unreadCount > 0 && (
+            <span className="absolute top-1 right-1 bg-red-500 text-[10px] text-white rounded-full h-4 w-4 flex items-center justify-center font-bold">
+              {unreadCount > 9 ? "9+" : unreadCount}
+            </span>
+          )}
+        </button>
       </header>
+
+      {/* Mobile: Overlay escuro */}
+      {isMobileMenuOpen && (
+        <div
+          className="md:hidden fixed inset-0 bg-black/50 z-30"
+          onClick={() => setIsMobileMenuOpen(false)}
+        />
+      )}
+
+      {/* Mobile: Drawer deslizante */}
+      <div
+        className={`md:hidden fixed top-0 left-0 h-full w-72 bg-pink-300 text-white shadow-2xl z-40 flex flex-col transform transition-transform duration-300 ease-in-out ${
+          isMobileMenuOpen ? "translate-x-0" : "-translate-x-full"
+        }`}
+      >
+        {/* Cabeçalho do drawer */}
+        <div className="h-16 flex items-center justify-between px-4 border-b border-white/20 shrink-0">
+          <div className="flex items-center gap-2 font-bold">
+            <div className="bg-white/20 p-2 rounded-full">
+              <FontAwesomeIcon icon="heart" />
+            </div>
+            <span className="font-cursive tracking-wider text-lg">Nosso Espaço</span>
+          </div>
+          <button
+            onClick={() => setIsMobileMenuOpen(false)}
+            className="w-9 h-9 flex items-center justify-center rounded-full hover:bg-white/20 transition-colors"
+            aria-label="Fechar menu"
+          >
+            <FontAwesomeIcon icon="times" />
+          </button>
+        </div>
+
+        {/* Links de navegação */}
+        <nav className="flex-grow overflow-y-auto py-4 px-3 space-y-1">
+          {navigation.map((item) => (
+            <Link
+              key={item.path}
+              to={item.path}
+              onClick={() => setIsMobileMenuOpen(false)}
+              className={`flex items-center gap-3 px-3 py-3 rounded-lg transition-all duration-200 ${
+                location.pathname === item.path
+                  ? "bg-white text-pink-400 font-semibold shadow"
+                  : "text-white hover:bg-white/20"
+              }`}
+            >
+              <FontAwesomeIcon icon={item.icon} className="w-4 h-4 shrink-0" />
+              <span>{item.name}</span>
+            </Link>
+          ))}
+
+          {/* Notificações */}
+          <button
+            onClick={() => {
+              setIsMobileMenuOpen(false);
+              handleNotificationsClick();
+            }}
+            className="w-full flex items-center gap-3 px-3 py-3 rounded-lg text-white hover:bg-white/20 transition-all duration-200"
+          >
+            <span className="relative shrink-0 w-4 h-4">
+              <FontAwesomeIcon icon="bell" className="w-4 h-4" />
+              {unreadCount > 0 && (
+                <span className="absolute -top-1.5 -right-1.5 bg-red-500 text-[10px] text-white rounded-full h-4 w-4 flex items-center justify-center font-bold">
+                  {unreadCount > 9 ? "9+" : unreadCount}
+                </span>
+              )}
+            </span>
+            <span>Notificações</span>
+          </button>
+        </nav>
+
+        {/* Rodapé do drawer */}
+        <div className="shrink-0 border-t border-white/20 p-4">
+          <button
+            onClick={() => {
+              setIsMobileMenuOpen(false);
+              handleSignOut();
+            }}
+            className="w-full flex items-center gap-3 px-3 py-3 rounded-lg text-white hover:bg-white/20 transition-all duration-200"
+          >
+            <FontAwesomeIcon icon="sign-out-alt" className="w-4 h-4 shrink-0" />
+            <span>Sair</span>
+          </button>
+          <p className="text-center text-white/60 text-xs mt-3">
+            © {new Date().getFullYear()} Nosso Espaço
+          </p>
+        </div>
+      </div>
 
       {/* Dropdown de notificações */}
       {notificationsOpen && (
         <div
           style={{ left: isMobile() ? undefined : sidebarWidth }}
-          className={`fixed z-30 ${
-            isMobile() ? "right-4 top-[72px]" : "top-4"
+          className={`fixed z-50 ${
+            isMobile() ? "right-2 top-[68px]" : "top-4"
           }`}
         >
           <Notifications onClose={() => setNotificationsOpen(false)} />
         </div>
       )}
-
-      {/* Menu mobile */}
-      {isMobileMenuOpen && (
-        <div className="md:hidden bg-white shadow-xl border-t border-gray-100 fixed inset-x-0 top-[72px] z-10 animate-slideDown">
-          <div className="px-2 pt-2 pb-3 space-y-1 max-h-[70vh] overflow-auto">
-            {navigation.map((item) => (
-              <Link
-                key={item.path}
-                to={item.path}
-                className={`block px-4 py-3 rounded-md items-center transition-all duration-200 ${
-                  location.pathname === item.path
-                    ? "bg-gradient-to-r from-primary/10 to-secondary/10 text-primary font-medium border-l-4 border-pink-300"
-                    : "hover:bg-gray-50 text-gray-700 hover:translate-x-1"
-                }`}
-                onClick={() => setIsMobileMenuOpen(false)}
-              >
-                <div
-                  className={`${
-                    location.pathname === item.path
-                      ? "bg-pink-300 text-white"
-                      : "bg-gray-100 text-pink-300"
-                  } p-2 rounded-full mr-3 w-10 h-10 flex items-center justify-center`}
-                >
-                  <FontAwesomeIcon icon={item.icon} />
-                </div>
-                {item.name}
-              </Link>
-            ))}
-            <button
-              onClick={() => {
-                handleSignOut();
-                setIsMobileMenuOpen(false);
-              }}
-              className="w-full text-left px-4 py-3 rounded-md hover:bg-gray-50 text-gray-700 flex items-center transition-all duration-200 hover:translate-x-1"
-            >
-              <div className="bg-gray-100 text-pink-300 p-2 rounded-full mr-3 w-10 h-10 flex items-center justify-center">
-                <FontAwesomeIcon icon="sign-out-alt" />
-              </div>
-              Sair
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* Main Content */}
       <main
         style={{ marginLeft: sidebarWidth }}
         className="hidden md:block flex-grow min-w-0 py-8 px-6 transition-[margin] duration-300"
@@ -271,37 +305,24 @@ const Layout = ({ children }) => {
         <div className="max-w-5xl mx-auto">{children}</div>
       </main>
 
-      {/* Mobile main content (sem margin, sem sidebar) */}
+      {/* Mobile main content */}
       <main
-        className="md:hidden flex-grow min-w-0 py-6 px-4"
+        className="md:hidden flex-grow min-w-0 pt-20 pb-6 px-4"
         onClick={() => {
           if (notificationsOpen) setNotificationsOpen(false);
-          if (isMobileMenuOpen) setIsMobileMenuOpen(false);
         }}
       >
         <div className="max-w-5xl mx-auto">{children}</div>
-      </main>
 
-      {/* Footer mobile */}
-      <footer className="bg-pink-300 py-6 text-white shadow-inner relative md:hidden">
-        <div className="container mx-auto px-4 relative">
-          <div className="flex flex-col justify-between items-center">
-            <div className="mb-4">
-              <p className="font-cursive text-xl">Nosso Espaço Especial</p>
-              <p className="text-white/90 text-sm">
-                Compartilhe momentos especiais com quem você ama
-              </p>
-            </div>
-            <p className="text-sm flex items-center">
-              © {new Date().getFullYear()} | Criado com
-              <FontAwesomeIcon
-                icon="heart"
-                className="mx-1 text-red-800 animate-pulse"
-              />
-            </p>
-          </div>
-        </div>
-      </footer>
+        {/* Footer mobile */}
+        <footer className="mt-10 pt-6 border-t border-pink-200 text-center text-gray-400 text-xs">
+          <p className="font-cursive text-sm text-pink-400 mb-1">Nosso Espaço Especial</p>
+          <p className="flex items-center justify-center gap-1">
+            © {new Date().getFullYear()} | Criado com
+            <FontAwesomeIcon icon="heart" className="text-pink-300 animate-pulse" />
+          </p>
+        </footer>
+      </main>
     </div>
   );
 };

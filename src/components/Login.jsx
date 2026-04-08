@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { signInWithEmailAndPassword } from "firebase/auth";
+import { signInWithEmailAndPassword, sendPasswordResetEmail } from "firebase/auth";
 import { auth } from "../firebase";
 import { Link } from "react-router-dom";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
@@ -8,6 +8,25 @@ const Login = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState(null);
+  const [resetSent, setResetSent] = useState(false);
+  const [resetLoading, setResetLoading] = useState(false);
+
+  const handleForgotPassword = async () => {
+    if (!email) {
+      setError("Digite seu e-mail acima para redefinir a senha.");
+      return;
+    }
+    setResetLoading(true);
+    try {
+      await sendPasswordResetEmail(auth, email);
+      setResetSent(true);
+      setError(null);
+    } catch (err) {
+      setError("Não foi possível enviar o e-mail. Verifique o endereço digitado.");
+    } finally {
+      setResetLoading(false);
+    }
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -95,6 +114,24 @@ const Login = () => {
             <FontAwesomeIcon icon="sign-in-alt" />
             Entrar
           </button>
+
+          <div className="text-center">
+            <button
+              type="button"
+              onClick={handleForgotPassword}
+              disabled={resetLoading}
+              className="text-sm text-pink-400 hover:text-pink-600 hover:underline transition-colors disabled:opacity-50"
+            >
+              {resetLoading ? "Enviando..." : "Esqueci minha senha"}
+            </button>
+          </div>
+
+          {resetSent && (
+            <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg flex items-center gap-3 text-sm">
+              <FontAwesomeIcon icon="check-circle" className="text-green-500 shrink-0" />
+              <p>E-mail de redefinição enviado! Verifique a caixa de entrada.</p>
+            </div>
+          )}
         </form>
 
         <div className="mt-6 sm:mt-8 text-center border-t border-gray-200 pt-4 sm:pt-6">
